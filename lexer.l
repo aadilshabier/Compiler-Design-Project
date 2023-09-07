@@ -35,6 +35,7 @@ log_not {yyout << "NOT" << std::endl;}
 [+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
 [+|-]?[0-9]+"."[0-9]* {yyout << "FLOAT: " << yytext << std::endl;}
 [a-zA-Z_][a-zA-Z0-9_]* {yyout << "ID: " << yytext << std::endl;}
+"'""\\"?".""'" {yyout << "CHAR: " << yytext << std::endl;}
 
 \"(\\.|[^\"])*\" {yyout << "STRING: " << yytext << std::endl;}
 
