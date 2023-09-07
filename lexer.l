@@ -1,35 +1,47 @@
+%option yylineno
+
 %{
 #include <fstream>
 
-int num_lines = 0, num_words = 0, num_ints = 0, num_specials = 0;
 %}
 
-DIGIT	[0-9]
-ID		[A-Za-z][A-Za-z0-9]*
+log_and "&&"|"and"
+log_or "||"|"or"
+log_not "!"|"not"
 
 %%
-\/\/.*$ ;
-\/\*(?s:.)*\*\/ ;
-[a-zA-Z]+ {
-	++num_words;
-	// fputs(yytext, yyout);
-	yyout << yytext;
-}
-[0-9]+ {
-	++num_ints;
-	yyout << yytext;
-}
-[\n] {
-	++num_lines;
-	yyout << yytext;
-}
-[ \t] {
-	yyout << yytext;
-}
-[^A-Za-z0-9] {
-	++num_specials;
-	yyout << yytext;
-}
+"#include"[ ]*((<.*>)|(\".*\")) {yyout << "HEADER: " << yytext << std::endl;}
+void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yytext << std::endl;}
+"const" {yyout << "QUALIFIER: " << yytext << std::endl;}
+"if" {yyout << "IF" << std::endl;}
+"for" {yyout << "FOR" << std::endl;}
+"while" {yyout << "WHILE" << std::endl;}
+"continue" {yyout << "CONTINUE" << std::endl;}
+"else" {yyout << "ELSE" << std::endl;}
+"switch" {yyout << "SWITCH" << std::endl;}
+"case" {yyout << "CASE" << std::endl;}
+"break" {yyout << "BREAK" << std::endl;}
+"return" {yyout << "RETURN" << std::endl;}
+
+log_or {yyout << "OR" << std::endl;}
+log_and {yyout << "AND" << std::endl;}
+log_not {yyout << "NOT" << std::endl;}
+"=="|"!="|"<"|"<="|">"|">=" {yyout << "COMP: " << yytext << std::endl; /* TODO: add bitwise ops */}
+"+="|"-="|"*="|"/=" {yyout << "SELFOP: " << yytext << std::endl;}
+"("|")"|"["|"]"|"{"|"}" {yyout << "PAREN: " << yytext << std::endl;}
+";"|"="|","|"."|"+"|"-"|"*"|"/" {yyout << "OP: " << yytext << std::endl; /* TODO: add bitwise ops */
+ }
+
+[+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
+[+|-]?[0-9]+"."[0-9]* {yyout << "FLOAT: " << yytext << std::endl;}
+[a-zA-Z_][a-zA-Z0-9_]* {yyout << "ID: " << yytext << std::endl;}
+
+\"(\\.|[^\"])*\" {yyout << "STRING: " << yytext << std::endl;}
+
+\/\/.*$ /* remove single line headers */
+\/\*(?s:.)*\*\/ /* remove multi line headers */
+[ \n\t] /* eat up whitespace */
+. ;
 %%
 
 int yyFlexLexer::yywrap() {
@@ -37,25 +49,9 @@ int yyFlexLexer::yywrap() {
 }
 
 int main(int argc, char* argv[]) {
-	// if (argc < 2) {
-	// 	std::cerr << "You need to supply atleast 2 arguments\n";
-	// 	return 1;
-	// }
-	// yyin = fopen(argv[1], "r");
-	// if (not yyin) {
-	// 	std::cerr << "Could not open file: " << argv[1] << endl;
-	// 	return 1;
-	// }
-	// yyout = fopen("output.txt", "w");
-	// yyout = stdout;
 	std::ifstream yyin("./test/prog1.c");
 	yyFlexLexer lexer(yyin, std::cout);
 	while (lexer.yylex() != 0)
 		;
-
-	printf("There are %d lines\n", num_lines);
-	printf("There are %d words\n", num_words);
-	printf("There are %d integers\n", num_ints);
-	printf("There are %d special characters\n", num_specials);
 	return 0;
 }
