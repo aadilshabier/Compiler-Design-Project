@@ -33,14 +33,30 @@ log_not {yyout << "NOT" << std::endl;}
  }
 
 [+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
-[+|-]?[0-9]+"."[0-9]* {yyout << "FLOAT: " << yytext << std::endl;}
+[+|-]?[0-9]+"."[0-9]*([Ee][+|-]?[0-9]+)? {yyout << "FLOAT: " << yytext << std::endl;}
 [a-zA-Z_][a-zA-Z0-9_]* {yyout << "ID: " << yytext << std::endl;}
 "'""\\"?".""'" {yyout << "CHAR: " << yytext << std::endl;}
 
 \"(\\.|[^\"])*\" {yyout << "STRING: " << yytext << std::endl;}
 
 \/\/.*$ /* remove single line headers */
-\/\*(?s:.)*\*\/ /* remove multi line headers */
+"/*" {
+    /* remove multi line headers */
+    int start_lineno = yylineno;
+    int c;
+    bool done = false;
+    while ((c = yyinput()) != 0) {
+        if(c == '*') {
+            if((c = yyinput()) == '/') {
+                done = true;
+                break;
+            }
+        }
+    }
+    if (not done) {
+       std::cerr << "ERROR: Multiline comment started at line " << start_lineno << " not terminated\n";
+    }
+}
 [ \n\t] /* eat up whitespace */
 . ;
 %%
