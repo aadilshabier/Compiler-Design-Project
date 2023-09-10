@@ -66,7 +66,13 @@ int yyFlexLexer::yywrap() {
 }
 
 int main(int argc, char* argv[]) {
-	std::ifstream yyin("./test/prog1.c");
+	if (argc < 2) {
+		std::cerr << "ERROR: filename not given!\n";
+	}
+	std::ifstream yyin(argv[1]);
+	if (not yyin.is_open()) {
+		std::cerr << "ERROR: file with filename does not exist: " << argv[1] << std::endl;
+	}
 	yyFlexLexer lexer(yyin, std::cout);
 	while (lexer.yylex() != 0)
 		;

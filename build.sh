@@ -4,4 +4,4 @@ set -xe
 
 flex++ lexer.l
 c++ lex.yy.cc
-./a.out
+./a.out ./test/prog2.c
