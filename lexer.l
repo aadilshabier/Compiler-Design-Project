@@ -26,10 +26,10 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
 log_or {yyout << "OR" << std::endl;}
 log_and {yyout << "AND" << std::endl;}
 log_not {yyout << "NOT" << std::endl;}
-"=="|"!="|"<"|"<="|">"|">=" {yyout << "COMP: " << yytext << std::endl; /* TODO: add bitwise ops */}
+"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  {yyout << "COMP: " << yytext << std::endl; }
 "+="|"-="|"*="|"/=" {yyout << "SELFOP: " << yytext << std::endl;}
 "("|")"|"["|"]"|"{"|"}" {yyout << "PAREN: " << yytext << std::endl;}
-";"|"="|","|"."|"+"|"-"|"*"|"/" {yyout << "OP: " << yytext << std::endl; /* TODO: add bitwise ops */
+";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" {yyout << "OP: " << yytext << std::endl;
  }
 
 [+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
