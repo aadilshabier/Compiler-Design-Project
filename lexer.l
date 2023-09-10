@@ -2,9 +2,11 @@
 
 %{
 #include <fstream>
+#include "symbol_table.h"
 
 #define MAX_ID_LENGTH 31
 
+SymbolTable symbol_table;
 %}
 
 log_and "&&"|"and"
@@ -42,6 +44,11 @@ log_not {yyout << "NOT" << std::endl;}
         exit(1);
     } else {
         yyout << "ID: " << yytext << std::endl;
+        // insert new symbol if not already found
+        if (auto it = symbol_table.find(yytext); it==symbol_table.end()) {
+            auto &sym = symbol_table[yytext];
+            sym.lineno = yylineno;
+        }
     }
 }
 "'""\\"?".""'" {yyout << "CHAR: " << yytext << std::endl;}
@@ -81,10 +88,21 @@ int main(int argc, char* argv[]) {
 	}
 	std::ifstream yyin(argv[1]);
 	if (not yyin.is_open()) {
-		std::cerr << "ERROR: file with filename does not exist: " << argv[1] << std::endl;
+		std::cerr << "ERROR: file does not exist: " << argv[1] << std::endl;
 	}
 	yyFlexLexer lexer(yyin, std::cout);
 	while (lexer.yylex() != 0)
 		;
+	std::cout << "\nSYMBOLS:\n";
+	for (auto &[name, sym] : symbol_table) {
+		std::cout << "Name: " << name;
+		std::cout << "  Line: " << sym.lineno;
+		std::cout << "  Type: " << sym.type;
+		std::cout << "  Scope: " << sym.scopeno;
+		std::cout << "  Size: " << sym.size;
+		std::cout << "  Addr: " << sym.addr;
+		std::cout << "  Value: " << sym.value;
+		std::cout << std::endl;
+	}
 	return 0;
 }
