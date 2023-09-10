@@ -3,6 +3,8 @@
 %{
 #include <fstream>
 
+#define MAX_ID_LENGTH 31
+
 %}
 
 log_and "&&"|"and"
@@ -34,7 +36,14 @@ log_not {yyout << "NOT" << std::endl;}
 
 [+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
 [+|-]?[0-9]+"."[0-9]*([Ee][+|-]?[0-9]+)? {yyout << "FLOAT: " << yytext << std::endl;}
-[a-zA-Z_][a-zA-Z0-9_]* {yyout << "ID: " << yytext << std::endl;}
+[a-zA-Z_][a-zA-Z0-9_]* {
+    if (yyleng > MAX_ID_LENGTH) {
+        std::cerr << "ERROR: Indentifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
+        exit(1);
+    } else {
+        yyout << "ID: " << yytext << std::endl;
+    }
+}
 "'""\\"?".""'" {yyout << "CHAR: " << yytext << std::endl;}
 
 \"(\\.|[^\"])*\" {yyout << "STRING: " << yytext << std::endl;}
@@ -55,6 +64,7 @@ log_not {yyout << "NOT" << std::endl;}
     }
     if (not done) {
        std::cerr << "ERROR: Multiline comment started at line " << start_lineno << " not terminated\n";
+       exit(1);
     }
 }
 [ \n\t] /* eat up whitespace */
