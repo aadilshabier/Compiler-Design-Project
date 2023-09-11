@@ -15,6 +15,7 @@ log_not "!"|"not"
 
 %%
 "#include"[ ]*((<.*>)|(\".*\")) {yyout << "HEADER: " << yytext << std::endl;}
+"#define"[ ]+.*$ { yyout << "DEFINE: " << yytext << std::endl; }
 void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yytext << std::endl;}
 "const" {yyout << "QUALIFIER: " << yytext << std::endl;}
 "if" {yyout << "IF" << std::endl;}
