@@ -41,7 +41,7 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
 [+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
 [a-zA-Z_][a-zA-Z0-9_]* {
     if (yyleng > MAX_ID_LENGTH) {
-        std::cerr << "ERROR: Indentifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
+        std::cerr << "ERROR: Identifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
         exit(1);
     } else {
         yyout << "ID: " << yytext << std::endl;
@@ -52,9 +52,9 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
         }
     }
 }
-"'""\\"?."'" {yyout << "CHAR: " << yytext << std::endl;}
+[']((\\[befnrtv\\'\"\?])|.)['] {yyout << "CHAR: " << yytext << std::endl;}
 
-"\"" {
+[\"] {
     std::string str_literal = "\"";
     int c;
     int lineno = 0;
