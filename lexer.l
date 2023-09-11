@@ -1,3 +1,4 @@
+%option c++
 %option yylineno
 
 %{
@@ -52,9 +53,35 @@ log_not {yyout << "NOT" << std::endl;}
         }
     }
 }
-"'""\\"?".""'" {yyout << "CHAR: " << yytext << std::endl;}
+"'""\\"?."'" {yyout << "CHAR: " << yytext << std::endl;}
 
-\"(\\.|[^\"])*\" {yyout << "STRING: " << yytext << std::endl;}
+"\"" {
+    std::string str_literal = "\"";
+    int c;
+    int lineno = 0;
+    while ((c=yyinput()) != 0) {
+        lineno = yylineno;
+        if (c == '"') {
+            str_literal += c;
+            break;
+        }
+        if (c == '\n') {
+            std::cerr << "ERROR: String literal not closed at line " << lineno << std::endl;
+            exit(1);
+        }
+        str_literal += c;
+        if (c == '\\') {
+            const static std::string escape = "befnrtv\\'\"?";
+            int nextc = yyinput();
+            if (escape.find(nextc) == escape.npos) {
+                std::cerr << "ERROR: Escape sequence not recognized: \\"  << (char)nextc << " at line " << lineno << std::endl;
+                exit(1);
+            }
+            str_literal += nextc;
+        }
+    }
+    yyout << "STRING: " << str_literal << std::endl;
+}
 
 \/\/.*$ /* remove single line headers */
 "/*" {
@@ -76,7 +103,10 @@ log_not {yyout << "NOT" << std::endl;}
     }
 }
 [ \n\t] /* eat up whitespace */
-. ;
+. {
+    std::cerr << "Character not recognized: " << yytext << std::endl;
+    exit(1);
+}
 %%
 
 int yyFlexLexer::yywrap() {
