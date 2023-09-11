@@ -7,12 +7,11 @@
 
 #define MAX_ID_LENGTH 31
 
-// flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
-
 SymbolTable symbol_table;
 %}
 
-DIGIT [0-9]
+flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
+
 %%
 "#include"[ ]*((<.*>)|(\".*\")) {yyout << "HEADER: " << yytext << std::endl;}
 "#define"[ ]+.*$ { yyout << "DEFINE: " << yytext << std::endl; }
@@ -31,13 +30,14 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
 "&&"|"and" {yyout << "OR" << std::endl;}
 "||"|"or" {yyout << "AND" << std::endl;}
 "!"|"not" {yyout << "NOT" << std::endl;}
+
 "=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  {yyout << "COMP: " << yytext << std::endl; }
 "+="|"-="|"*="|"/=" {yyout << "SELFOP: " << yytext << std::endl;}
 "("|")"|"["|"]"|"{"|"}" {yyout << "PAREN: " << yytext << std::endl;}
 ";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" {yyout << "OP: " << yytext << std::endl;
  }
 
-flt_lit {yyout << "FLOAT: " << yytext << std::endl;}
+{flt_lit} {yyout << "FLOAT: " << yytext << std::endl;}
 [+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
 [a-zA-Z_][a-zA-Z0-9_]* {
     if (yyleng > MAX_ID_LENGTH) {

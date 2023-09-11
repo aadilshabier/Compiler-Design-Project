@@ -10,6 +10,6 @@ char c = '1';
 float fexp = 23.0e-12;
 
 int main() {
-	printf("Hello, \tWorld: %d\n", var1);
+	printf("Hello, \tWorld: %d\n", var1 and 4);
 	return 0;
 }
