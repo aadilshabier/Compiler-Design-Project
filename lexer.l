@@ -27,8 +27,8 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
 "break" {yyout << "BREAK" << std::endl;}
 "return" {yyout << "RETURN" << std::endl;}
 
-"&&"|"and" {yyout << "OR" << std::endl;}
-"||"|"or" {yyout << "AND" << std::endl;}
+"&&"|"and" {yyout << "AND" << std::endl;}
+"||"|"or" {yyout << "OR" << std::endl;}
 "!"|"not" {yyout << "NOT" << std::endl;}
 
 "=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  {yyout << "COMP: " << yytext << std::endl; }
