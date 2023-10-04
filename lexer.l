@@ -65,7 +65,7 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
             break;
         }
         if (c == '\n') {
-            std::cerr << "ERROR: String literal not closed at line " << lineno << std::endl;
+            std::cerr << "ERROR: String literal not closed at line " << lineno-1 << std::endl;
             exit(1);
         }
         str_literal += c;
