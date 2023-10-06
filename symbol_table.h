@@ -1,8 +1,9 @@
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 struct SymbolDetails {
-	int lineno = 0;
+	std::vector<int> linenos;
 	std::string type;
 	int scopeno = -1;
 	int size = 0;

@@ -6,6 +6,7 @@
 #include "symbol_table.h"
 
 #define MAX_ID_LENGTH 31
+#define PRINT_DASH for(int i=0; i<110; i++) std::cout << "-"; std::cout << "\n";
 
 SymbolTable symbol_table;
 %}
@@ -13,10 +14,10 @@ SymbolTable symbol_table;
 flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
 
 %%
-"#include"[ ]*((<.*>)|(\".*\")) {yyout << "HEADER: " << yytext << std::endl;}
-"#define"[ ]+.*$ { yyout << "DEFINE: " << yytext << std::endl; }
-void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yytext << std::endl;}
-"const" {yyout << "QUALIFIER: " << yytext << std::endl;}
+"#include"[ ]*((<.*>)|(\".*\")) {yyout << "HEADER:\t\t" << yytext << std::endl;}
+"#define"[ ]+.*$ { yyout << "DEFINE:\t\t" << yytext << std::endl; }
+void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE:\t\t" << yytext << std::endl;}
+"const" {yyout << "QUALIFIER:\t" << yytext << std::endl;}
 "if" {yyout << "IF" << std::endl;}
 "for" {yyout << "FOR" << std::endl;}
 "while" {yyout << "WHILE" << std::endl;}
@@ -31,28 +32,25 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
 "||"|"or" {yyout << "OR" << std::endl;}
 "!"|"not" {yyout << "NOT" << std::endl;}
 
-"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  {yyout << "COMP: " << yytext << std::endl; }
-"+="|"-="|"*="|"/=" {yyout << "SELFOP: " << yytext << std::endl;}
-"("|")"|"["|"]"|"{"|"}" {yyout << "PAREN: " << yytext << std::endl;}
-";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" {yyout << "OP: " << yytext << std::endl;
+"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  {yyout << "COMP:\t\t" << yytext << std::endl; }
+"+="|"-="|"*="|"/=" {yyout << "SELFOP:\t\t" << yytext << std::endl;}
+"("|")"|"["|"]"|"{"|"}" {yyout << "PAREN:\t\t" << yytext << std::endl;}
+";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" {yyout << "OP:\t\t" << yytext << std::endl;
  }
 
-{flt_lit} {yyout << "FLOAT: " << yytext << std::endl;}
-[+|-]?[0-9]+ {yyout << "INTEGER: " << yytext << std::endl;}
+{flt_lit} {yyout << "FLOAT:\t\t" << yytext << std::endl;}
+[+|-]?[0-9]+ {yyout << "INTEGER:\t" << yytext << std::endl;}
 [a-zA-Z_][a-zA-Z0-9_]* {
     if (yyleng > MAX_ID_LENGTH) {
         std::cerr << "ERROR: Identifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
         exit(1);
     } else {
-        yyout << "ID: " << yytext << std::endl;
-        // insert new symbol if not already found
-        if (auto it = symbol_table.find(yytext); it==symbol_table.end()) {
-            auto &sym = symbol_table[yytext];
-            sym.lineno = yylineno;
-        }
+        yyout << "ID:\t\t" << yytext << std::endl;
+        auto &sym = symbol_table[yytext];
+        sym.linenos.push_back(yylineno);
     }
 }
-[']((\\[befnrtv\\'\"\?])|.)['] {yyout << "CHAR: " << yytext << std::endl;}
+[']((\\[befnrtv\\'\"\?])|.)['] {yyout << "CHAR:\t\t" << yytext << std::endl;}
 
 [\"] {
     std::string str_literal = "\"";
@@ -79,7 +77,7 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE: " << yyte
             str_literal += nextc;
         }
     }
-    yyout << "STRING: " << str_literal << std::endl;
+    yyout << "STRING:\t\t" << str_literal << std::endl;
 }
 
 \/\/.*$ /* remove single line headers */
@@ -120,19 +118,29 @@ int main(int argc, char* argv[]) {
 	if (not yyin.is_open()) {
 		std::cerr << "ERROR: file does not exist: " << argv[1] << std::endl;
 	}
+    PRINT_DASH
+    
 	yyFlexLexer lexer(yyin, std::cout);
 	while (lexer.yylex() != 0)
 		;
-	std::cout << "\nSYMBOLS:\n";
+
+	std::cout<<std::endl;
+    PRINT_DASH
+    std::cout << "\t\t\t\t\tSYMBOL TABLE\n";
+    PRINT_DASH
 	for (auto &[name, sym] : symbol_table) {
-		std::cout << "Name: " << name;
-		std::cout << "  Line: " << sym.lineno;
-		std::cout << "  Type: " << sym.type;
-		std::cout << "  Scope: " << sym.scopeno;
-		std::cout << "  Size: " << sym.size;
-		std::cout << "  Addr: " << sym.addr;
-		std::cout << "  Value: " << sym.value;
+		std::cout << "NAME: " << name;
+		std::cout << "  --  Lines: ";
+        for (auto line : sym.linenos) {
+            std::cout << line << " ";
+        }
+		std::cout << "  --  TYPE: " << sym.type;
+		std::cout << "  --  SCOPE: " << sym.scopeno;
+		std::cout << "  --  SIZE: " << sym.size;
+		std::cout << "  --  ADDR: " << sym.addr;
+		std::cout << "  --  VALUE: " << sym.value;
 		std::cout << std::endl;
 	}
+    PRINT_DASH; std::cout<<std::endl;
 	return 0;
 }
