@@ -6,7 +6,7 @@
 #include "symbol_table.h"
 
 #define MAX_ID_LENGTH 31
-#define PRINT_DASH for(int i=0; i<110; i++) std::cout << "-"; std::cout << "\n";
+#define PRINT_DASH for(int i=0; i<80; i++) std::cout << "-"; std::cout << "\n";
 
 SymbolTable symbol_table;
 %}
