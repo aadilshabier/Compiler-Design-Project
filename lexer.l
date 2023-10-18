@@ -34,7 +34,8 @@ void|char|short|int|long|unsigned|signed|float|double { return DATATYPE; }
 "("|")"|"["|"]"|"{"|"}" { return yytext[0];}
 
 "=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  { return COMP_OP; }
-"="|"+="|"-="|"*="|"/="|"&="|"|="|"^=" { return ASSIGN_OP;}
+"=" { return yytext[0]; }
+"+="|"-="|"*="|"/="|"&="|"|="|"^=" { return ASSIGN_OP;}
 
 "+"|"-"|"|"|"&"|"^"|"*"|"/"|"&&"|"and"|"||"|"or"|"!"|"not" { return BINARY_OP; }
 "~"|"++"|"--" { return UNARY_OP; }
