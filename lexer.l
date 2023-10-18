@@ -17,11 +17,12 @@ flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][
 %%
 "#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
 "#define"[ ]+.*$ { return DEFINE; }
-void|char|short|int|long|unsigned|signed|float|double { return DATATYPE; }
+void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; }
 "const"|"volatile" {  return QUALIFIER;}
 "if" { return IF; }
 "for" { return FOR; }
 "while" { return WHILE; }
+"do" { return DO; }
 "continue" { return CONTINUE; }
 "else" { return ELSE; }
 "switch" { return SWITCH; }
@@ -33,15 +34,16 @@ void|char|short|int|long|unsigned|signed|float|double { return DATATYPE; }
 "true"|"false" {return BOOL_CONST;}
 "("|")"|"["|"]"|"{"|"}" { return yytext[0];}
 
-"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  { return COMP_OP; }
+"=="|"!="|"<"|"<="|">"|">="  { return COMP_OP; }
 "=" { return yytext[0]; }
-"+="|"-="|"*="|"/="|"&="|"|="|"^=" { return ASSIGN_OP;}
+"+="|"-="|"*="|"/="|"%="|"&="|"|="|"^="|">>="|"<<=" { return ASSIGN_OP;}
+"<<"|">>" {return SHIFT_CONST;}
 
-"+"|"-"|"|"|"&"|"^"|"*"|"/"|"&&"|"and"|"||"|"or"|"!"|"not" { return BINARY_OP; }
-"~"|"++"|"--" { return UNARY_OP; }
+"+"|"-"|"&"|"*"|"/"|","|";" { return yytext[0]; } //Both Unary and Binary
+"|"|"^"|"&&"|"and"|"||"|"or" { return BINARY_OP; }
+"!"|"not"|"~" {return UNARY_OP;}
+"++"|"--" { return INC_OP; }
 "."|"->" { return MEM_OP; }
-";" { return SEMI; }
-"," { return COMMA; }
 
 {flt_lit} { return FLOAT;}
 [+|-]?[0-9]+ { return INTEGER;}
@@ -105,9 +107,9 @@ void|char|short|int|long|unsigned|signed|float|double { return DATATYPE; }
     }
 }
 
-[ \n\t] /* eat up whitespace */
+[ \n\t\r] /* eat up whitespace */
 . {
-    std::cerr << "Character not recognized: " << yytext << std::endl;
+    std::cerr << "ERROR: Character not recognized: " << yytext << std::endl;
     exit(1);
 }
 %%
