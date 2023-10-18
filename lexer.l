@@ -1,8 +1,9 @@
-%option c++
 %option yylineno
 
 %{
+#include "parser.hpp"
 #include <fstream>
+#include <iostream>
 #include "symbol_table.h"
 
 #define MAX_ID_LENGTH 31
@@ -14,43 +15,42 @@ SymbolTable symbol_table;
 flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
 
 %%
-"#include"[ ]*((<.*>)|(\".*\")) {yyout << "HEADER:\t\t" << yytext << std::endl;}
-"#define"[ ]+.*$ { yyout << "DEFINE:\t\t" << yytext << std::endl; }
-void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE:\t\t" << yytext << std::endl;}
-"const" {yyout << "QUALIFIER:\t" << yytext << std::endl;}
-"if" {yyout << "IF" << std::endl;}
-"for" {yyout << "FOR" << std::endl;}
-"while" {yyout << "WHILE" << std::endl;}
-"continue" {yyout << "CONTINUE" << std::endl;}
-"else" {yyout << "ELSE" << std::endl;}
-"switch" {yyout << "SWITCH" << std::endl;}
-"case" {yyout << "CASE" << std::endl;}
-"break" {yyout << "BREAK" << std::endl;}
-"return" {yyout << "RETURN" << std::endl;}
+"#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
+"#define"[ ]+.*$ { return DEFINE; }
+void|char|short|int|long|unsigned|signed|float|double { return TYPE; }
+"const"|"volatile" {  return QUALIFIER;}
+"if" { return IF; }
+"for" { return FOR; }
+"while" { return WHILE; }
+"continue" { return CONTINUE; }
+"else" { return ELSE; }
+"switch" { return SWITCH; }
+"case" { return CASE; }
+"break" { return BREAK; }
+"return" { return RETURN; }
 
-"&&"|"and" {yyout << "AND" << std::endl;}
-"||"|"or" {yyout << "OR" << std::endl;}
-"!"|"not" {yyout << "NOT" << std::endl;}
+"&&"|"and" { return AND;}
+"||"|"or" { return OR;}
+"!"|"not" { return NOT;}
 
-"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  {yyout << "COMP:\t\t" << yytext << std::endl; }
-"+="|"-="|"*="|"/=" {yyout << "SELFOP:\t\t" << yytext << std::endl;}
-"("|")"|"["|"]"|"{"|"}" {yyout << "PAREN:\t\t" << yytext << std::endl;}
-";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" {yyout << "OP:\t\t" << yytext << std::endl;
- }
+"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  { return COMP; }
+"+="|"-="|"*="|"/=" { return SELFOP;}
+"("|")"|"["|"]"|"{"|"}" { return PAREN;}
+";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" { return OP; }
 
-{flt_lit} {yyout << "FLOAT:\t\t" << yytext << std::endl;}
-[+|-]?[0-9]+ {yyout << "INTEGER:\t" << yytext << std::endl;}
+{flt_lit} { return FLOAT;}
+[+|-]?[0-9]+ { return INTEGER;}
 [a-zA-Z_][a-zA-Z0-9_]* {
     if (yyleng > MAX_ID_LENGTH) {
         std::cerr << "ERROR: Identifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
         exit(1);
     } else {
-        yyout << "ID:\t\t" << yytext << std::endl;
         auto &sym = symbol_table[yytext];
         sym.linenos.push_back(yylineno);
+        return ID;
     }
 }
-[']((\\[befnrtv\\'\"\?])|.)['] {yyout << "CHAR:\t\t" << yytext << std::endl;}
+[']((\\[befnrtv\\'\"\?])|.)['] { return CHAR;}
 
 [\"] {
     std::string str_literal = "\"";
@@ -77,7 +77,7 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE:\t\t" << y
             str_literal += nextc;
         }
     }
-    yyout << "STRING:\t\t" << str_literal << std::endl;
+    return STRING;
 }
 
 \/\/.*$ /* remove single line headers */
@@ -106,41 +106,6 @@ void|char|short|int|long|unsigned|signed|float|double {yyout << "TYPE:\t\t" << y
 }
 %%
 
-int yyFlexLexer::yywrap() {
-	return 1;
-}
-
-int main(int argc, char* argv[]) {
-	if (argc < 2) {
-		std::cerr << "ERROR: filename not given!\n";
-	}
-	std::ifstream yyin(argv[1]);
-	if (not yyin.is_open()) {
-		std::cerr << "ERROR: file does not exist: " << argv[1] << std::endl;
-	}
-    PRINT_DASH
-    
-	yyFlexLexer lexer(yyin, std::cout);
-	while (lexer.yylex() != 0)
-		;
-
-	std::cout<<std::endl;
-    PRINT_DASH
-    std::cout << "\t\t\t\t\tSYMBOL TABLE\n";
-    PRINT_DASH
-	for (auto &[name, sym] : symbol_table) {
-		std::cout << "NAME: " << name;
-		std::cout << "  --  Lines: ";
-        for (auto line : sym.linenos) {
-            std::cout << line << " ";
-        }
-		std::cout << "  --  TYPE: " << sym.type;
-		std::cout << "  --  SCOPE: " << sym.scopeno;
-		std::cout << "  --  SIZE: " << sym.size;
-		std::cout << "  --  ADDR: " << sym.addr;
-		std::cout << "  --  VALUE: " << sym.value;
-		std::cout << std::endl;
-	}
-    PRINT_DASH; std::cout<<std::endl;
-	return 0;
+int yywrap() {
+    return 1;
 }
