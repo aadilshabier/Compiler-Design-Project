@@ -17,7 +17,7 @@ flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][
 %%
 "#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
 "#define"[ ]+.*$ { return DEFINE; }
-void|char|short|int|long|unsigned|signed|float|double { return TYPE; }
+void|char|short|int|long|unsigned|signed|float|double { return DATATYPE; }
 "const"|"volatile" {  return QUALIFIER;}
 "if" { return IF; }
 "for" { return FOR; }
@@ -28,15 +28,19 @@ void|char|short|int|long|unsigned|signed|float|double { return TYPE; }
 "case" { return CASE; }
 "break" { return BREAK; }
 "return" { return RETURN; }
+"struct" { return STRUCT; }
 
-"&&"|"and" { return AND;}
-"||"|"or" { return OR;}
-"!"|"not" { return NOT;}
+"true"|"false" {return BOOL_CONST;}
+"("|")"|"["|"]"|"{"|"}" { return yytext[0];}
 
-"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  { return COMP; }
-"+="|"-="|"*="|"/=" { return SELFOP;}
-"("|")"|"["|"]"|"{"|"}" { return PAREN;}
-";"|"="|","|"."|"+"|"-"|"*"|"/"|"|"|"&"|"^"|"~" { return OP; }
+"=="|"!="|"<"|"<="|">"|">="|"|="|"&="|"^="  { return COMP_OP; }
+"="|"+="|"-="|"*="|"/="|"&="|"|="|"^=" { return ASSIGN_OP;}
+
+"+"|"-"|"|"|"&"|"^"|"*"|"/"|"&&"|"and"|"||"|"or"|"!"|"not" { return BINARY_OP; }
+"~"|"++"|"--" { return UNARY_OP; }
+"."|"->" { return MEM_OP; }
+";" { return SEMI; }
+"," { return COMMA; }
 
 {flt_lit} { return FLOAT;}
 [+|-]?[0-9]+ { return INTEGER;}
@@ -99,6 +103,7 @@ void|char|short|int|long|unsigned|signed|float|double { return TYPE; }
        exit(1);
     }
 }
+
 [ \n\t] /* eat up whitespace */
 . {
     std::cerr << "Character not recognized: " << yytext << std::endl;
