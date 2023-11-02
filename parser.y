@@ -12,7 +12,7 @@
 
 %token FOR IF ELSE WHILE DO BOOL_CONST UNARY_OP BINARY_OP ASSIGN_OP SHIFT_CONST
 INTEGER FLOAT ID STRING HEADER DEFINE RETURN DATATYPE COMP_OP MEM_OP
-QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT CHAR INC_OP
+QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP
 %nonassoc "then"
 %nonassoc ELSE
 %left '+' '-'
@@ -20,7 +20,7 @@ QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT CHAR INC_OP
 %start start
 
 %%
-start: program_unit {exit(0);}
+start: program_unit { printf("Compilation successful!\n"); exit(0);}
 ;
 
 program_unit: HEADER program_unit
@@ -33,6 +33,8 @@ translation_unit: external_decl translation_unit
 
 external_decl: function_definition
              | decl
+             | struct_decl
+             | union_decl
 ;
 
 function_definition: decl_specs ID '(' param_list ')' compound_stat
@@ -42,8 +44,19 @@ function_definition: decl_specs ID '(' param_list ')' compound_stat
 decl: decl_specs init_declarator_list ';'
 ;
 
+struct_decl: STRUCT ID '{' decl_list '}' ';'
+;
+
+union_decl: UNION ID '{' decl_list '}' init_declarator_list ';'
+
+decl_list: decl decl_list
+         |
+;
+
 decl_specs : QUALIFIER DATATYPE
            | DATATYPE
+           | STRUCT ID
+           | UNION ID
            | QUALIFIER
 ;
 
@@ -59,8 +72,8 @@ init_declarator_list: init_declarator
          | init_declarator ',' init_declarator_list
 ;
 
-init_declarator: ID
-               | ID '=' exp
+init_declarator: postfix_exp
+               | postfix_exp '=' exp
 ;
 
 stat: exp_stat

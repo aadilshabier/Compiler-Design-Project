@@ -12,7 +12,7 @@
 SymbolTable symbol_table;
 %}
 
-flt_lit [+-]?(([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
+flt_lit (([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
 
 %%
 "#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
@@ -30,6 +30,7 @@ void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; 
 "break" { return BREAK; }
 "return" { return RETURN; }
 "struct" { return STRUCT; }
+"union" { return UNION; }
 
 "true"|"false" {return BOOL_CONST;}
 "("|")"|"["|"]"|"{"|"}" { return yytext[0];}
@@ -46,7 +47,7 @@ void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; 
 "."|"->" { return MEM_OP; }
 
 {flt_lit} { return FLOAT;}
-[+|-]?[0-9]+ { return INTEGER;}
+[0-9]+ { return INTEGER;}
 [a-zA-Z_][a-zA-Z0-9_]* {
     if (yyleng > MAX_ID_LENGTH) {
         std::cerr << "ERROR: Identifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
