@@ -12,7 +12,7 @@
 
 %token FOR IF ELSE WHILE DO BOOL_CONST UNARY_OP BINARY_OP ASSIGN_OP SHIFT_CONST
 INTEGER FLOAT ID STRING HEADER DEFINE RETURN DATATYPE COMP_OP MEM_OP
-QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP
+QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
 %nonassoc "then"
 %nonassoc ELSE
 %left '+' '-'
@@ -20,7 +20,7 @@ QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP
 %start start
 
 %%
-start: program_unit { printf("Compilation successful!\n"); exit(0);}
+start: program_unit END_OF_FILE { printf("Compilation successful!\n"); exit(0);}
 ;
 
 program_unit: HEADER program_unit
@@ -125,7 +125,7 @@ assignment_exp : conditional_exp
 ;
 
 conditional_exp : logical_exp
-        | logical_exp '?' exp ':' conditional_exp
+        | logical_exp '?' exp ':' exp
         ;
 
 logical_exp : equality_exp
@@ -207,6 +207,7 @@ int main(int argc, char* argv[]) {
     yyin = fopen(argv[1], "r");
 	if (yyin == nullptr) {
 		std::cerr << "ERROR: file does not exist: " << argv[1] << std::endl;
+                return 1;
 	}
     
 	yyparse();

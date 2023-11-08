@@ -40,7 +40,7 @@ void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; 
 "+="|"-="|"*="|"/="|"%="|"&="|"|="|"^="|">>="|"<<=" { return ASSIGN_OP;}
 "<<"|">>" {return SHIFT_CONST;}
 
-"+"|"-"|"&"|"*"|"/"|","|";" { return yytext[0]; } //Both Unary and Binary
+"+"|"-"|"&"|"*"|"/"|","|";"|"?"|":" { return yytext[0]; } //Both Unary and Binary
 "|"|"^"|"&&"|"and"|"||"|"or" { return BINARY_OP; }
 "!"|"not"|"~" {return UNARY_OP;}
 "++"|"--" { return INC_OP; }
@@ -109,6 +109,7 @@ void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; 
 }
 
 [ \n\t\r] /* eat up whitespace */
+<<EOF>> return END_OF_FILE;
 . {
     std::cerr << "ERROR: Character not recognized: " << yytext << std::endl;
     exit(1);
