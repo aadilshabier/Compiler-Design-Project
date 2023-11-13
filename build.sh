@@ -11,5 +11,5 @@ set -xe
 
 bison -d -o parser.cpp parser.y
 flex -o lexer.cpp lexer.l
-c++ lexer.cpp parser.cpp
+c++ lexer.cpp parser.cpp symbol_table.cpp
 ./a.out $1

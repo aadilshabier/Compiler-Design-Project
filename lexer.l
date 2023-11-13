@@ -1,15 +1,13 @@
 %option yylineno
 
 %{
+#include "symbol_table.h"
 #include "parser.hpp"
 #include <fstream>
 #include <iostream>
-#include "symbol_table.h"
 
 #define MAX_ID_LENGTH 31
 #define PRINT_DASH for(int i=0; i<80; i++) std::cout << "-"; std::cout << "\n";
-
-SymbolTable symbol_table;
 %}
 
 flt_lit (([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[0-9]+)?))
@@ -17,7 +15,7 @@ flt_lit (([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[
 %%
 "#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
 "#define"[ ]+.*$ { return DEFINE; }
-void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; }
+void|char|short|int|long|unsigned|signed|float|double|size_t { yylval.type = strdup(yytext); return DATATYPE; }
 "const"|"volatile" {  return QUALIFIER;}
 "if" { return IF; }
 "for" { return FOR; }
@@ -52,11 +50,8 @@ void|char|short|int|long|unsigned|signed|float|double|size_t { return DATATYPE; 
     if (yyleng > MAX_ID_LENGTH) {
         std::cerr << "ERROR: Identifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
         exit(1);
-    } else {
-        auto &sym = symbol_table[yytext];
-        sym.linenos.push_back(yylineno);
-        return ID;
     }
+    return ID;
 }
 [']((\\[befnrtv\\'\"\?])|.)['] { return CHAR;}
 

@@ -1,5 +1,8 @@
 %{
 	#include <iostream>
+	#include <cstring>
+    #include "symbol_table.h"
+
 	using namespace std;
 
 	int yylex();
@@ -8,6 +11,9 @@
 	}
     extern FILE* yyin;
 	extern int yylineno;
+
+	Env env;
+	Type currentType;
 %}
 
 %token FOR IF ELSE WHILE DO BOOL_CONST UNARY_OP BINARY_OP ASSIGN_OP SHIFT_CONST
@@ -24,6 +30,12 @@ QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
 %left '(' '['
 %left INC_OP
 
+%union {
+	char* type;
+}
+
+%type <type> decl_specs
+
 %start start
 
 %%
@@ -36,7 +48,7 @@ program_unit: HEADER program_unit
 ;
 
 translation_unit: external_decl translation_unit
-                |
+                | %empty
 ;
 
 external_decl: function_definition
@@ -52,6 +64,7 @@ function_definition: decl_specs ID '(' param_list ')' compound_stat
 decl: decl_specs init_declarator_list ';'
 ;
 
+
 struct_decl: STRUCT ID '{' decl_list '}' init_declarator_list ';'
            | STRUCT ID '{' decl_list '}' ';'
 ;
@@ -60,14 +73,14 @@ union_decl: UNION ID '{' decl_list '}' init_declarator_list ';'
           | UNION ID '{' decl_list '}' ';'
 
 decl_list: decl decl_list
-         |
+         | %empty
 ;
 
-decl_specs : QUALIFIER DATATYPE
-           | DATATYPE
-           | STRUCT ID
-           | UNION ID
-           | QUALIFIER
+decl_specs : QUALIFIER DATATYPE { $<type>$ = $<type>2; }
+           | DATATYPE { $<type>$ = $<type>1; }
+           | STRUCT ID { $<type>$ = "struct"; }
+           | UNION ID { $<type>$ = "union"; }
+           | QUALIFIER { $<type>$ = "int"; }
 ;
 
 param_list: param
@@ -82,8 +95,21 @@ init_declarator_list: init_declarator
          | init_declarator ',' init_declarator_list
 ;
 
-init_declarator: postfix_exp
-               | postfix_exp '=' exp
+init_declarator: declarator
+               | declarator '=' exp
+;
+
+declarator: pointer direct_declarator
+          | direct_declarator
+;
+
+pointer: '*' pointer
+| '*'
+;
+
+direct_declarator: ID
+                 | direct_declarator '[' conditional_exp ']'
+                 | direct_declarator '[' ']'
 ;
 
 stat: exp_stat
@@ -102,7 +128,7 @@ compound_stat: '{'stat_list '}'
 ;
 
 stat_list: stat stat_list
-         |
+         | %empty
 ;
 
 selection_stat : IF '(' exp ')' stat 	    %prec "then"
@@ -111,7 +137,7 @@ selection_stat : IF '(' exp ')' stat 	    %prec "then"
 ;
 
 opt_exp : exp
-        |
+        | %empty
 ;
 
 iteration_stat : WHILE '(' exp ')' stat
@@ -173,16 +199,15 @@ unary_exp : postfix_exp
         | unary_operator cast_exp
         ;
 
-unary_operator : '+'|'-'|'&'| UNARY_OP
+unary_operator : '+'|'-'|'&'| '*' |UNARY_OP
 ;
 
 postfix_exp : primary_exp
         | postfix_exp '[' exp ']'
         | postfix_exp '(' argument_exp_list ')'
         | postfix_exp '(' ')'
-        | postfix_exp MEM_OP postfix_exp
+        | postfix_exp MEM_OP ID
         | postfix_exp INC_OP
-        | '*' postfix_exp
         ;
                             
 primary_exp : ID 													

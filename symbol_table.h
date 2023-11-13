@@ -1,14 +1,45 @@
+#pragma once
+
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+// struct Type {
+	// bool is_ptr;
+	// std::string type_name;
+	// Type *inner_type = nullptr;
+// };
+
+using Type = std::string;
+
 struct SymbolDetails {
-	std::vector<int> linenos;
-	std::string type;
+    int declLine;
+	std::vector<int> usageLines;
+	Type type;
+	int dimension;
 	int scopeno = -1;
 	int size = 0;
 	int addr = -1;
-	std::string value;
 };
 
 using SymbolTable = std::unordered_map<std::string, SymbolDetails>;
+
+class Env {
+	std::vector<SymbolTable> stStack;
+public:
+	Env();
+
+	void newScope();
+
+	void endScope();
+
+	/* is the type declared
+	 * 0: not declared
+	 * 1: declared in any scope, not in current scope
+	 * 2: declared in current scope
+	 */
+    int isDeclared(const std::string& name) const;
+
+	SymbolDetails& put(const std::string &name);
+private:
+};
