@@ -22,7 +22,7 @@ struct SymbolDetails {
 
 	// Function stuff
 	bool is_func = false;
-	vectr<Type> params;
+	std::vector<Type> params;
 };
 
 using SymbolTable = std::unordered_map<std::string, SymbolDetails>;
@@ -46,4 +46,5 @@ public:
 	SymbolDetails& put(const std::string &name);
 	SymbolDetails& get(const std::string &name);
 private:
+	static void printParamList(const std::vector<Type> &params);
 };

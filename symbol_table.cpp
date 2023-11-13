@@ -1,9 +1,8 @@
 #include "symbol_table.h"
+#include <iostream>
 
 Env::Env()
 {
-	// global symbol table
-	stStack.emplace_back();
 }
 
 void Env::newScope()
@@ -13,6 +12,19 @@ void Env::newScope()
 
 void Env::endScope()
 {
+	for (auto xy: stStack.back()) {
+		std::cout << "Added to symbol table: " << xy.first
+				  << " of type " << xy.second.type
+				  << " at line " << xy.second.decl_line;
+		if (xy.second.is_func) {
+			std::cout << " with parameters: ";
+			printParamList(xy.second.params);
+			std::cout << std::endl;
+		} else {
+			std::cout << " with dimension " << xy.second.dimension;
+		}
+		std::cout << std::endl;
+	}
 	stStack.pop_back();
 }
 
@@ -39,4 +51,13 @@ SymbolDetails& Env::get(const std::string &name) {
 			return it->second;
 		}
 	}
+}
+
+void Env::printParamList(const std::vector<Type> &params)
+{
+	std::cout << '(';
+	for (const auto &p : params) {
+		std::cout << p << ", ";
+	}
+	std::cout << ')';
 }

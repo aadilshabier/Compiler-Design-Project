@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int fun()
+int fun(int asd, char **asdas)
 {
 	int i = 1, k = 12, *j;
 

@@ -14,6 +14,7 @@
 
 	Env env;
 	Type currentType;
+	vector<Type> currentParams;
 %}
 
 %token FOR IF ELSE WHILE DO BOOL_CONST UNARY_OP BINARY_OP ASSIGN_OP SHIFT_CONST
@@ -39,7 +40,7 @@ QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
 %start start
 
 %%
-start: program_unit END_OF_FILE { printf("Compilation successful!\n"); exit(0);}
+start: { env.newScope(); } program_unit END_OF_FILE { cout << "Compilation successful!\n"; env.endScope(); exit(0);}
 ;
 
 program_unit: HEADER program_unit
@@ -57,7 +58,7 @@ external_decl: function_definition
              | union_decl
 ;
 
-function_definition: decl_specs declarator compound_stat
+function_definition: decl_specs { currentType = $<str>1; env.newScope(); } declarator compound_stat { env.endScope(); } 
 ;
 
 decl: decl_specs { currentType = $<str>1;} init_declarator_list ';'
@@ -86,22 +87,14 @@ param_list: param
           | param ',' param_list
 ;
 
-param: decl_specs ID
-     | decl_specs
+param: decl_specs { currentType = $<str>1; } declarator { currentParams.push_back($<details>3->type); }
 ;
 
 init_declarator_list: init_declarator
          | init_declarator ',' init_declarator_list
 ;
 
-init_declarator: declarator {
-	auto* details = $<details>1;
-	cout << "Added to symbol table: "
-		 << " of type " << details->type
-		 << " at line " << details->decl_line
-		 << " with dimension " << details->dimension
-		 << endl;
- }
+init_declarator: declarator
                | declarator '=' exp
 ;
 
@@ -123,7 +116,7 @@ direct_declarator: ID {
 	std::string idName = $<str>1;
 	auto res = env.isDeclared(idName);
 	if (res == 2) {
-	    cerr << "Redeclaration of: " << idName << endl;
+	    cerr << "ERROR: Redeclaration of: " << idName << endl;
 		exit(1);
 	}
 	auto &details = env.put(idName);
@@ -141,8 +134,15 @@ direct_declarator: ID {
 	details->dimension++;
 	$<details>$ = $<details>1;
  }
-                 | direct_declarator '(' param_list ')'
-                 | direct_declarator '(' ')'
+| direct_declarator '(' { currentParams.clear(); } param_list ')' {
+	auto *details = $<details>1;
+	details->is_func = true;
+	details->params = currentParams;
+ }
+| direct_declarator '(' ')' {
+	auto *details = $<details>1;
+	details->is_func = true;
+ }
 ;
 
 stat: exp_stat
