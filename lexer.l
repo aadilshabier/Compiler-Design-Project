@@ -15,7 +15,7 @@ flt_lit (([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[
 %%
 "#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
 "#define"[ ]+.*$ { return DEFINE; }
-void|char|short|int|long|unsigned|signed|float|double|size_t { yylval.type = strdup(yytext); return DATATYPE; }
+void|char|short|int|long|unsigned|signed|float|double|size_t { yylval.str = strdup(yytext); return DATATYPE; }
 "const"|"volatile" {  return QUALIFIER;}
 "if" { return IF; }
 "for" { return FOR; }
@@ -51,6 +51,7 @@ void|char|short|int|long|unsigned|signed|float|double|size_t { yylval.type = str
         std::cerr << "ERROR: Identifier " << yytext << " at line " << yylineno << " crosses maximum length of " << MAX_ID_LENGTH << std::endl;
         exit(1);
     }
+    yylval.str = strdup(yytext);
     return ID;
 }
 [']((\\[befnrtv\\'\"\?])|.)['] { return CHAR;}

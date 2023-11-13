@@ -31,10 +31,10 @@ QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
 %left INC_OP
 
 %union {
-	char* type;
+	char* str;
+	SymbolDetails *details;
+	int val;
 }
-
-%type <type> decl_specs
 
 %start start
 
@@ -57,11 +57,10 @@ external_decl: function_definition
              | union_decl
 ;
 
-function_definition: decl_specs ID '(' param_list ')' compound_stat
-                   | decl_specs ID '(' ')' compound_stat
+function_definition: decl_specs declarator compound_stat
 ;
 
-decl: decl_specs init_declarator_list ';'
+decl: decl_specs { currentType = $<str>1;} init_declarator_list ';'
 ;
 
 
@@ -76,11 +75,11 @@ decl_list: decl decl_list
          | %empty
 ;
 
-decl_specs : QUALIFIER DATATYPE { $<type>$ = $<type>2; }
-           | DATATYPE { $<type>$ = $<type>1; }
-           | STRUCT ID { $<type>$ = "struct"; }
-           | UNION ID { $<type>$ = "union"; }
-           | QUALIFIER { $<type>$ = "int"; }
+decl_specs : QUALIFIER DATATYPE { $<str>$ = $<str>2; }
+           | DATATYPE { $<str>$ = $<str>1; }
+           | STRUCT ID { $<str>$ = "struct"; }
+           | UNION ID { $<str>$ = "union"; }
+           | QUALIFIER { $<str>$ = "int"; }
 ;
 
 param_list: param
@@ -95,21 +94,55 @@ init_declarator_list: init_declarator
          | init_declarator ',' init_declarator_list
 ;
 
-init_declarator: declarator
+init_declarator: declarator {
+	auto* details = $<details>1;
+	cout << "Added to symbol table: "
+		 << " of type " << details->type
+		 << " at line " << details->decl_line
+		 << " with dimension " << details->dimension
+		 << endl;
+ }
                | declarator '=' exp
 ;
 
-declarator: pointer direct_declarator
+declarator: pointer direct_declarator {
+	int ptr_count = $<val>1;
+	auto* details = $<details>2;
+	for (int i=0; i<ptr_count; i++)
+		details->type+='*';
+	$<details>$ = details;
+ }
           | direct_declarator
 ;
 
-pointer: '*' pointer
-| '*'
+pointer: '*' pointer { $<val>$ = $<val>2 + 1; }
+| '*' { $<val>$ = 1; }
 ;
 
-direct_declarator: ID
-                 | direct_declarator '[' conditional_exp ']'
-                 | direct_declarator '[' ']'
+direct_declarator: ID {
+	std::string idName = $<str>1;
+	auto res = env.isDeclared(idName);
+	if (res == 2) {
+	    cerr << "Redeclaration of: " << idName << endl;
+		exit(1);
+	}
+	auto &details = env.put(idName);
+	details.decl_line = yylineno;
+	details.type = currentType;
+	$<details>$ = &details;
+ }
+| direct_declarator '[' conditional_exp ']' {
+	auto *details = $<details>1;
+	details->dimension++;
+	$<details>$ = $<details>1;
+ }
+| direct_declarator '[' ']' {
+	auto *details = $<details>1;
+	details->dimension++;
+	$<details>$ = $<details>1;
+ }
+                 | direct_declarator '(' param_list ')'
+                 | direct_declarator '(' ')'
 ;
 
 stat: exp_stat

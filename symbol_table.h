@@ -13,13 +13,16 @@
 using Type = std::string;
 
 struct SymbolDetails {
-    int declLine;
-	std::vector<int> usageLines;
+    int decl_line;
+	std::vector<int> usage_lines;
 	Type type;
-	int dimension;
-	int scopeno = -1;
+	int dimension = 0;
 	int size = 0;
 	int addr = -1;
+
+	// Function stuff
+	bool is_func = false;
+	vectr<Type> params;
 };
 
 using SymbolTable = std::unordered_map<std::string, SymbolDetails>;
@@ -41,5 +44,6 @@ public:
     int isDeclared(const std::string& name) const;
 
 	SymbolDetails& put(const std::string &name);
+	SymbolDetails& get(const std::string &name);
 private:
 };

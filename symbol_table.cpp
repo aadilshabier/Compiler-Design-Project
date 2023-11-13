@@ -30,3 +30,13 @@ int Env::isDeclared(const std::string& name) const {
 SymbolDetails& Env::put(const std::string &name) {
 	return stStack.back()[name];
 }
+
+SymbolDetails& Env::get(const std::string &name) {
+	int len = stStack.size();
+	for (int i=len-1; i>=0; i--) {
+		SymbolTable &curST = stStack[i];
+		if (auto it = curST.find(name); it != curST.end()) {
+			return it->second;
+		}
+	}
+}
