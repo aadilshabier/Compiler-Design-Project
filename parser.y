@@ -22,6 +22,7 @@ QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
 %left '*' '/'
 %left MEM_OP
 %left '(' '['
+%left INC_OP
 
 %start start
 
