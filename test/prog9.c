@@ -4,7 +4,6 @@ struct A {
 	int b;
 };
 
-
 int main(){
 	struct A c, d;
 	union C b = 9;

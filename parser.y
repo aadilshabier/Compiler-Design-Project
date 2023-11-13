@@ -15,8 +15,14 @@ INTEGER FLOAT ID STRING HEADER DEFINE RETURN DATATYPE COMP_OP MEM_OP
 QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
 %nonassoc "then"
 %nonassoc ELSE
+%left ','
+%left '=' ASSIGN_OP
+%right '?'
 %left '+' '-'
 %left '*' '/'
+%left MEM_OP
+%left '(' '['
+
 %start start
 
 %%
@@ -24,6 +30,7 @@ start: program_unit END_OF_FILE { printf("Compilation successful!\n"); exit(0);}
 ;
 
 program_unit: HEADER program_unit
+            | DEFINE program_unit
             | translation_unit
 ;
 
@@ -44,10 +51,12 @@ function_definition: decl_specs ID '(' param_list ')' compound_stat
 decl: decl_specs init_declarator_list ';'
 ;
 
-struct_decl: STRUCT ID '{' decl_list '}' ';'
+struct_decl: STRUCT ID '{' decl_list '}' init_declarator_list ';'
+           | STRUCT ID '{' decl_list '}' ';'
 ;
 
 union_decl: UNION ID '{' decl_list '}' init_declarator_list ';'
+          | UNION ID '{' decl_list '}' ';'
 
 decl_list: decl decl_list
          |
@@ -125,14 +134,14 @@ assignment_exp : conditional_exp
 ;
 
 conditional_exp : logical_exp
-        | logical_exp '?' exp ':' exp
+        | logical_exp '?' exp ':' assignment_exp
         ;
 
 logical_exp : equality_exp
         | logical_exp logical_oper equality_exp
         ;
 
-logical_oper : '&' | BINARY_OP
+logical_oper : '|' | '&' | BINARY_OP
         ;
 
 equality_exp : shift_expression
@@ -163,15 +172,16 @@ unary_exp : postfix_exp
         | unary_operator cast_exp
         ;
 
-unary_operator : '+'|'-'|'&'|'*'| UNARY_OP 				
-        ;
+unary_operator : '+'|'-'|'&'| UNARY_OP
+;
 
-postfix_exp : primary_exp 											
+postfix_exp : primary_exp
         | postfix_exp '[' exp ']'
         | postfix_exp '(' argument_exp_list ')'
         | postfix_exp '(' ')'
-        | postfix_exp MEM_OP ID
+        | postfix_exp MEM_OP postfix_exp
         | postfix_exp INC_OP
+        | '*' postfix_exp
         ;
                             
 primary_exp : ID 													
@@ -202,12 +212,13 @@ extern "C" {
 int main(int argc, char* argv[]) {
 	if (argc < 2) {
 		std::cerr << "ERROR: filename not given!\n";
+		return 1;
 	}
 	/* std::ifstream yyin(argv[1]); */
     yyin = fopen(argv[1], "r");
 	if (yyin == nullptr) {
 		std::cerr << "ERROR: file does not exist: " << argv[1] << std::endl;
-                return 1;
+		return 1;
 	}
     
 	yyparse();
