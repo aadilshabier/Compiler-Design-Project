@@ -204,58 +204,65 @@ logical_exp : equality_exp
 logical_oper : '|' | '&' | BINARY_OP
         ;
 
-equality_exp : shift_expression
+equality_exp : shift_expression { $<type>$ = $<type>1;}
         | equality_exp COMP_OP shift_expression
         ;
 
-shift_expression : additive_exp
+shift_expression : additive_exp { $<type>$ = $<type>1;}
         | shift_expression SHIFT_CONST additive_exp
         ;
 
-additive_exp : mult_exp
-        | additive_exp '+' mult_exp
-        | additive_exp '-' mult_exp
+additive_exp : mult_exp { $<type>$ = $<type>1;}
+        | additive_exp '+' mult_exp { isOpValid($<type>1, "+", $<type>3); $<type>$ = $<type>1;}
+        | additive_exp '-' mult_exp { isOpValid($<type>1, "-", $<type>3); $<type>$ = $<type>1;}
         ;
 
 mult_exp : cast_exp
-        | mult_exp '*' cast_exp
-        | mult_exp '/' cast_exp
-        | mult_exp '%' cast_exp
+        | mult_exp '*' cast_exp { isOpValid($<type>1, "*", $<type>3); $<type>$ = $<type>1;}
+        | mult_exp '/' cast_exp { isOpValid($<type>1, "/", $<type>3); $<type>$ = $<type>1;}
+        | mult_exp '%' cast_exp { isOpValid($<type>1, "%", $<type>3); $<type>$ = $<type>1;}
         ;
 
-cast_exp : unary_exp
-        | '(' DATATYPE ')' cast_exp
+cast_exp : unary_exp { $<type>$ = $<type>1; }
+        | '(' DATATYPE ')' cast_exp { $<type>$ = $<type>2; }
         ;
 
-unary_exp : postfix_exp
-        | INC_OP unary_exp
+unary_exp : postfix_exp { $<type>$ = $<type>1; }
+        | INC_OP unary_exp { $<type>$ = $<type>2; }
         | unary_operator cast_exp
         ;
 
 unary_operator : '+'|'-'|'&'| '*' |UNARY_OP
 ;
 
-postfix_exp : primary_exp
+postfix_exp : primary_exp { $<type>$ = $<type>1; }
         | postfix_exp '[' exp ']'
         | postfix_exp '(' argument_exp_list ')'
-        | postfix_exp '(' ')'
-        | postfix_exp MEM_OP ID
-        | postfix_exp INC_OP
+        | postfix_exp '(' ')' 
+        | postfix_exp MEM_OP ID //skiping
+        | postfix_exp INC_OP { $<type>$ = $<type>1; }
         ;
                             
-primary_exp : ID 													
-        | consts 												
-        | STRING 												
-        | '(' exp ')'
+primary_exp : ID {
+                if(env.isDeclared($<str>1))
+                        $<type>$ = env.get($<str>1).type;
+                else{
+                        cout << "ERROR: ID " << $<str>1 << " not declared in line " << yylineo << endl;
+                        exit(1);
+                }
+                }												
+        | consts { $<type>$ = $<type>1; }											
+        | STRING { $<type>$ = "char*"; }												
+        | '(' exp ')' { $<type>$ = $<type>2; }
         ;
 
 argument_exp_list : assignment_exp
         | argument_exp_list ',' assignment_exp
         ;
 
-consts : INTEGER 											
-        | CHAR
-        | FLOAT
+consts : INTEGER { $<type>$ = "int"; }											
+        | CHAR  { $<type>$ = "char"; }	
+        | FLOAT { $<type>$ = "float"; }
         ;
 
 %%
@@ -282,4 +289,12 @@ int main(int argc, char* argv[]) {
     
 	yyparse();
 	return 0;
+}
+
+bool isOpValid(string type1, string op, string type2){
+        if(type1 != type2){
+                cout << "ERROR: Invaid operation used - " << op << " in line " << yylino << endl;
+                exit(0);
+        }
+        return true;
 }
