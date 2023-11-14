@@ -15,8 +15,6 @@
 	bool isOpValid(string type1, string op, string type2);
 
 	Env env;
-	Type currentType;
-	vector<Type> currentParams;
 %}
 
 %token FOR IF ELSE WHILE DO BOOL_CONST UNARY_OP BINARY_OP ASSIGN_OP SHIFT_CONST
@@ -60,7 +58,7 @@ external_decl: function_definition
              | union_decl
 ;
 
-function_definition: decl_specs { currentType = $<str>1; } declarator {
+function_definition: decl_specs { env.currentType = $<str>1; } declarator {
 	env.newScope();
 	env.inFunction = true;
 }
@@ -70,7 +68,7 @@ compound_stat {
 }
 ;
 
-decl: decl_specs { currentType = $<str>1;} init_declarator_list ';'
+decl: decl_specs { env.currentType = $<str>1;} init_declarator_list ';'
 ;
 
 
@@ -96,7 +94,7 @@ param_list: param
           | param ',' param_list
 ;
 
-param: decl_specs { currentType = $<str>1; } declarator { currentParams.push_back($<details>3->type); }
+param: decl_specs { env.currentType = $<str>1; } declarator { env.currentParams.push_back($<details>3->type); }
 ;
 
 init_declarator_list: init_declarator
@@ -130,7 +128,7 @@ direct_declarator: ID {
 	}
 	auto &details = env.put(idName);
 	details.decl_line = yylineno;
-	details.type = currentType;
+	details.type = env.currentType;
 	$<details>$ = &details;
  }
 | direct_declarator '[' conditional_exp ']' {
@@ -143,10 +141,10 @@ direct_declarator: ID {
 	details->dimension++;
 	$<details>$ = $<details>1;
  }
-| direct_declarator '(' { currentParams.clear(); } param_list ')' {
+| direct_declarator '(' { env.currentParams.clear(); } param_list ')' {
 	auto *details = $<details>1;
 	details->is_func = true;
-	details->params = currentParams;
+	details->params = env.currentParams;
  }
 | direct_declarator '(' ')' {
 	auto *details = $<details>1;
