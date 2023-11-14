@@ -28,7 +28,6 @@ struct SymbolDetails {
 using SymbolTable = std::unordered_map<std::string, SymbolDetails>;
 
 class Env {
-	std::vector<SymbolTable> stStack;
 public:
 	Env();
 
@@ -47,4 +46,10 @@ public:
 	SymbolDetails& get(const std::string &name);
 private:
 	static void printParamList(const std::vector<Type> &params);
+public:
+	int switchCount = 0; // for case, default, break statements
+	int loopCount = 0; // for break, continue statements
+	bool inFunction = false; // for returns
+private:
+	std::vector<SymbolTable> stStack;
 };

@@ -21,14 +21,14 @@
 
 %token FOR IF ELSE WHILE DO BOOL_CONST UNARY_OP BINARY_OP ASSIGN_OP SHIFT_CONST
 INTEGER FLOAT ID STRING HEADER DEFINE RETURN DATATYPE COMP_OP MEM_OP
-QUALIFIER CONTINUE BREAK SWITCH CASE STRUCT UNION CHAR INC_OP END_OF_FILE
+QUALIFIER CONTINUE BREAK SWITCH CASE DEFAULT STRUCT UNION CHAR INC_OP END_OF_FILE
 %nonassoc "then"
 %nonassoc ELSE
 %left ','
 %left '=' ASSIGN_OP
 %right '?'
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
 %left MEM_OP
 %left '(' '['
 %left INC_OP
@@ -60,7 +60,14 @@ external_decl: function_definition
              | union_decl
 ;
 
-function_definition: decl_specs { currentType = $<str>1; env.newScope(); } declarator compound_stat { env.endScope(); } 
+function_definition: decl_specs { currentType = $<str>1; } declarator {
+	env.newScope();
+	env.inFunction = true;
+}
+compound_stat {
+	env.endScope();
+	env.inFunction = false;
+}
 ;
 
 decl: decl_specs { currentType = $<str>1;} init_declarator_list ';'
@@ -152,7 +159,8 @@ stat: exp_stat
     | decl
     | jump_stat
     | selection_stat  									  
-	| iteration_stat
+    | { env.loopCount++; } iteration_stat { env.loopCount--; }
+    | labeled_stat
 ;
 
 exp_stat: exp ';'
@@ -168,7 +176,7 @@ stat_list: stat stat_list
 
 selection_stat : IF '(' exp ')' stat 	    %prec "then"
 | IF '(' exp ')' stat ELSE stat
-| SWITCH '(' exp ')' stat
+| SWITCH { env.switchCount++; } '(' exp ')' stat { env.switchCount--; }
 ;
 
 opt_exp : exp
@@ -181,11 +189,45 @@ iteration_stat : WHILE '(' exp ')' stat
 | FOR '(' { env.newScope(); } decl opt_exp ';' opt_exp ')' stat { env.endScope(); }
 ;
 
-jump_stat: CONTINUE ';'
-         | BREAK ';'
-         | RETURN exp ';'
-         | RETURN ';'
+jump_stat: CONTINUE ';' {
+	if (env.loopCount < 1) {
+		cerr<< "ERROR: Continue outside of loop at line " << yylineno << endl;
+		exit(1);
+	}
+}
+| BREAK ';' {
+	if (env.loopCount < 1 and env.switchCount < 1) {
+		cerr<< "ERROR: Break outside of loop or switch at line " << yylineno << endl;
+		exit(1);
+	}
+}
+| RETURN exp ';' {
+	if (not env.inFunction) {
+		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
+		exit(1);
+	}
+}
+| RETURN ';' {
+	if (not env.inFunction) {
+		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
+		exit(1);
+	}
+}
 ;
+
+labeled_stat: CASE consts ':' stat {
+	if (env.switchCount < 1) {
+		cerr<< "ERROR: Case outside of switch at line " << yylineno << endl;
+		exit(1);
+	}
+}
+| DEFAULT ':' stat {
+	if (env.switchCount < 1) {
+		cerr<< "ERROR: Default outside of switch at line " << yylineno << endl;
+		exit(1);
+	}
+
+}
 
 exp : assignment_exp
         | exp ',' assignment_exp
@@ -252,7 +294,7 @@ primary_exp : ID {
                         cout << "ERROR: ID " << $<str>1 << " not declared in line " << yylineno << endl;
                         exit(1);
                 }
-                }												
+}
         | consts { $<str>$ = $<str>1; }
         | STRING { $<str>$ = "char*"; }
         | '(' exp ')' { $<str>$ = $<str>2; }
@@ -266,7 +308,6 @@ consts : INTEGER { $<str>$ = "int"; }
         | CHAR  { $<str>$ = "char"; }
         | FLOAT { $<str>$ = "float"; }
         ;
-
 %%
 
 // Report an error to the user.
