@@ -12,6 +12,8 @@
     extern FILE* yyin;
 	extern int yylineno;
 
+	bool isOpValid(string type1, string op, string type2);
+
 	Env env;
 	Type currentType;
 	vector<Type> currentParams;
@@ -157,7 +159,7 @@ exp_stat: exp ';'
         | ';'
 ;
 
-compound_stat: '{'stat_list '}'
+compound_stat: '{'{ env.newScope(); } stat_list '}' { env.endScope(); }
 ;
 
 stat_list: stat stat_list
@@ -165,8 +167,8 @@ stat_list: stat stat_list
 ;
 
 selection_stat : IF '(' exp ')' stat 	    %prec "then"
-        | IF '(' exp ')' stat ELSE stat
-        | SWITCH '(' exp ')' stat
+| IF '(' exp ')' stat ELSE stat
+| SWITCH '(' exp ')' stat
 ;
 
 opt_exp : exp
@@ -174,9 +176,9 @@ opt_exp : exp
 ;
 
 iteration_stat : WHILE '(' exp ')' stat
-        | DO stat WHILE '(' exp ')' ';'
-        | FOR '(' opt_exp ';' opt_exp ';' opt_exp ')' stat
-        | FOR '(' decl opt_exp ';' opt_exp ')' stat
+| DO stat WHILE '(' exp ')' ';'
+| FOR '(' { env.newScope(); } opt_exp ';' opt_exp ';' opt_exp ')' stat { env.endScope(); }
+| FOR '(' { env.newScope(); } decl opt_exp ';' opt_exp ')' stat { env.endScope(); }
 ;
 
 jump_stat: CONTINUE ';'
@@ -204,65 +206,65 @@ logical_exp : equality_exp
 logical_oper : '|' | '&' | BINARY_OP
         ;
 
-equality_exp : shift_expression { $<type>$ = $<type>1;}
+equality_exp : shift_expression { $<str>$ = $<str>1;}
         | equality_exp COMP_OP shift_expression
         ;
 
-shift_expression : additive_exp { $<type>$ = $<type>1;}
+shift_expression : additive_exp { $<str>$ = $<str>1;}
         | shift_expression SHIFT_CONST additive_exp
         ;
 
-additive_exp : mult_exp { $<type>$ = $<type>1;}
-        | additive_exp '+' mult_exp { isOpValid($<type>1, "+", $<type>3); $<type>$ = $<type>1;}
-        | additive_exp '-' mult_exp { isOpValid($<type>1, "-", $<type>3); $<type>$ = $<type>1;}
+additive_exp : mult_exp { $<str>$ = $<str>1;}
+        | additive_exp '+' mult_exp { isOpValid($<str>1, "+", $<str>3); $<str>$ = $<str>1;}
+        | additive_exp '-' mult_exp { isOpValid($<str>1, "-", $<str>3); $<str>$ = $<str>1;}
         ;
 
 mult_exp : cast_exp
-        | mult_exp '*' cast_exp { isOpValid($<type>1, "*", $<type>3); $<type>$ = $<type>1;}
-        | mult_exp '/' cast_exp { isOpValid($<type>1, "/", $<type>3); $<type>$ = $<type>1;}
-        | mult_exp '%' cast_exp { isOpValid($<type>1, "%", $<type>3); $<type>$ = $<type>1;}
+        | mult_exp '*' cast_exp { isOpValid($<str>1, "*", $<str>3); $<str>$ = $<str>1;}
+        | mult_exp '/' cast_exp { isOpValid($<str>1, "/", $<str>3); $<str>$ = $<str>1;}
+        | mult_exp '%' cast_exp { isOpValid($<str>1, "%", $<str>3); $<str>$ = $<str>1;}
         ;
 
-cast_exp : unary_exp { $<type>$ = $<type>1; }
-        | '(' DATATYPE ')' cast_exp { $<type>$ = $<type>2; }
+cast_exp : unary_exp { $<str>$ = $<str>1; }
+        | '(' DATATYPE ')' cast_exp { $<str>$ = $<str>2; }
         ;
 
-unary_exp : postfix_exp { $<type>$ = $<type>1; }
-        | INC_OP unary_exp { $<type>$ = $<type>2; }
+unary_exp : postfix_exp { $<str>$ = $<str>1; }
+        | INC_OP unary_exp { $<str>$ = $<str>2; }
         | unary_operator cast_exp
         ;
 
-unary_operator : '+'|'-'|'&'| '*' |UNARY_OP
+unary_operator : '+'|'-'|'&'|'*'|UNARY_OP
 ;
 
-postfix_exp : primary_exp { $<type>$ = $<type>1; }
+postfix_exp : primary_exp { $<str>$ = $<str>1; }
         | postfix_exp '[' exp ']'
         | postfix_exp '(' argument_exp_list ')'
         | postfix_exp '(' ')' 
         | postfix_exp MEM_OP ID //skiping
-        | postfix_exp INC_OP { $<type>$ = $<type>1; }
+        | postfix_exp INC_OP { $<str>$ = $<str>1; }
         ;
                             
 primary_exp : ID {
                 if(env.isDeclared($<str>1))
-                        $<type>$ = env.get($<str>1).type;
+					$<str>$ = env.get($<str>1).type.data();
                 else{
-                        cout << "ERROR: ID " << $<str>1 << " not declared in line " << yylineo << endl;
+                        cout << "ERROR: ID " << $<str>1 << " not declared in line " << yylineno << endl;
                         exit(1);
                 }
                 }												
-        | consts { $<type>$ = $<type>1; }											
-        | STRING { $<type>$ = "char*"; }												
-        | '(' exp ')' { $<type>$ = $<type>2; }
+        | consts { $<str>$ = $<str>1; }
+        | STRING { $<str>$ = "char*"; }
+        | '(' exp ')' { $<str>$ = $<str>2; }
         ;
 
 argument_exp_list : assignment_exp
         | argument_exp_list ',' assignment_exp
         ;
 
-consts : INTEGER { $<type>$ = "int"; }											
-        | CHAR  { $<type>$ = "char"; }	
-        | FLOAT { $<type>$ = "float"; }
+consts : INTEGER { $<str>$ = "int"; }
+        | CHAR  { $<str>$ = "char"; }
+        | FLOAT { $<str>$ = "float"; }
         ;
 
 %%
@@ -292,9 +294,10 @@ int main(int argc, char* argv[]) {
 }
 
 bool isOpValid(string type1, string op, string type2){
-        if(type1 != type2){
-                cout << "ERROR: Invaid operation used - " << op << " in line " << yylino << endl;
-                exit(0);
-        }
-        return true;
+	if(type1 != type2){
+		cout << "ERROR: Invaid operation used: " << op << " in line " << yylineno
+			 << " with operands of type " << type1 <<" and " << type2 << endl;
+		exit(0);
+	}
+	return true;
 }
