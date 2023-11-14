@@ -102,7 +102,22 @@ init_declarator_list: init_declarator
 ;
 
 init_declarator: declarator
-               | declarator '=' exp
+               | declarator '=' initializer
+;
+
+initializer     : assignment_exp {$<str>$==$<str>1 ;}
+                | '{' initializer_list '}' {$<str>$==$<str>2 ;}
+                | '{' initializer_list ',' '}' {$<str>$==$<str>2 ;}
+;
+
+initializer_list        : initializer {$<str>$==$<str>1 ;}
+                | initializer_list ',' initializer{
+                        if($<str>1!=$<str>3){
+                                cerr<< "ERROR: Type mismatch during initialization at line " << yylineno << endl;
+                                exit(1);
+                        }
+                        $<str>$==$<str>1 ;
+                }
 ;
 
 declarator: pointer direct_declarator {
