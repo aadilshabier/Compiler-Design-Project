@@ -1,5 +1,7 @@
-void printf(char* s) {
+void printf(char* s, float b[]) {
 }
+
+double fun() {}
 
 int main() {
 	int a[3], r1;

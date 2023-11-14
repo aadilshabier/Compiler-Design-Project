@@ -146,11 +146,20 @@ direct_declarator: ID {
 | direct_declarator '(' { env.currentParams.clear(); } param_list ')' {
 	auto *details = $<details>1;
 	details->is_func = true;
-	details->params = env.currentParams;
+	details->type += '(';
+	int n = env.currentParams.size();
+	for (int i=0; i<n; i++) {
+		details->type += env.currentParams[i];
+		if (i != n-1) {
+			details->type += ',';
+		}
+	}
+	details->type += ')';
  }
 | direct_declarator '(' ')' {
 	auto *details = $<details>1;
 	details->is_func = true;
+	details->type += "()";
  }
 ;
 

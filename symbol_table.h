@@ -22,7 +22,6 @@ struct SymbolDetails {
 
 	// Function stuff
 	bool is_func = false;
-	std::vector<Type> params;
 };
 
 using SymbolTable = std::unordered_map<std::string, SymbolDetails>;
