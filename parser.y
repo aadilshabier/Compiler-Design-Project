@@ -1,7 +1,8 @@
 %{
 	#include <iostream>
 	#include <cstring>
-    #include "symbol_table.h"
+        #include <unordered_map>
+        #include "symbol_table.h"
 
 	using namespace std;
 
@@ -9,10 +10,12 @@
 	extern "C" {
 		void yyerror(const char *msg);
 	}
-    extern FILE* yyin;
+        extern FILE* yyin;
 	extern int yylineno;
 
-	bool isOpValid(string type1, string op, string type2);
+	std::string isOpValid(std::string type1, std::string op, std::string type2);
+        int findPriority(std::string type);
+        char* convertStr(std::string str);
 
 	Env env;
 %}
@@ -123,10 +126,10 @@ initializer_list        : initializer {$<str>$==$<str>1 ;}
 declarator: pointer direct_declarator {
 	int ptr_count = $<val>1;
 	auto* details = $<details>2;
-	for (int i=0; i<ptr_count; i++)
+for (int i=0; i<ptr_count; i++)
 		details->type+='*';
 	$<details>$ = details;
- }
+}
           | direct_declarator
 ;
 
@@ -144,18 +147,18 @@ direct_declarator: ID {
 	auto &details = env.put(idName);
 	details.decl_line = yylineno;
 	details.type = env.currentType;
-	$<details>$ = &details;
+        	$<details>$ = &details;
  }
 | direct_declarator '[' conditional_exp ']' {
 	auto *details = $<details>1;
 	details->dimension++;
-	details->type += '*';
+        details->type += '*';
 	$<details>$ = $<details>1;
  }
 | direct_declarator '[' ']' {
 	auto *details = $<details>1;
 	details->dimension++;
-	details->type += '*';
+        details->type += '*';
 	$<details>$ = $<details>1;
  }
 | direct_declarator '(' { env.currentParams.clear(); } param_list ')' {
@@ -174,8 +177,8 @@ direct_declarator: ID {
 | direct_declarator '(' ')' {
 	auto *details = $<details>1;
 	details->is_func = true;
-	details->type += "()";
- }
+        details->type += "()";
+}
 ;
 
 stat: exp_stat
@@ -229,13 +232,13 @@ jump_stat: CONTINUE ';' {
 	if (not env.inFunction) {
 		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
 		exit(1);
-	}
+	        }
 }
 | RETURN ';' {
 	if (not env.inFunction) {
 		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
 		exit(1);
-	}
+	        }
 }
 ;
 
@@ -256,9 +259,20 @@ labeled_stat: CASE consts ':' stat {
 exp : assignment_exp
         | exp ',' assignment_exp
 ;
+
 assignment_exp : conditional_exp
         | unary_exp ASSIGN_OP assignment_exp
-        | unary_exp '=' assignment_exp			
+        | unary_exp '=' assignment_exp {
+                if($<str>1==$<str>3){
+                        cerr<< "ERROR: Type mismatch during assignment at line " << yylineno << endl;
+		        exit(1);
+                }
+                $<str>$==$<str>1 ;
+        }	
+;
+
+argument_exp_list : assignment_exp
+        | argument_exp_list ',' assignment_exp
 ;
 
 conditional_exp : logical_exp
@@ -281,14 +295,14 @@ shift_expression : additive_exp { $<str>$ = $<str>1;}
         ;
 
 additive_exp : mult_exp { $<str>$ = $<str>1;}
-        | additive_exp '+' mult_exp { isOpValid($<str>1, "+", $<str>3); $<str>$ = $<str>1;}
-        | additive_exp '-' mult_exp { isOpValid($<str>1, "-", $<str>3); $<str>$ = $<str>1;}
+        | additive_exp '+' mult_exp { $<str>$ = convertStr(isOpValid($<str>1, "+", $<str>3));}
+        | additive_exp '-' mult_exp { $<str>$ = convertStr(isOpValid($<str>1, "-", $<str>3));}
         ;
 
 mult_exp : cast_exp
-        | mult_exp '*' cast_exp { isOpValid($<str>1, "*", $<str>3); $<str>$ = $<str>1;}
-        | mult_exp '/' cast_exp { isOpValid($<str>1, "/", $<str>3); $<str>$ = $<str>1;}
-        | mult_exp '%' cast_exp { isOpValid($<str>1, "%", $<str>3); $<str>$ = $<str>1;}
+        | mult_exp '*' cast_exp { $<str>$ = convertStr(isOpValid($<str>1, "*", $<str>3));}
+        | mult_exp '/' cast_exp { $<str>$ = convertStr(isOpValid($<str>1, "/", $<str>3));}
+        | mult_exp '%' cast_exp { $<str>$ = convertStr(isOpValid($<str>1, "%", $<str>3));}
         ;
 
 cast_exp : unary_exp { $<str>$ = $<str>1; }
@@ -297,10 +311,30 @@ cast_exp : unary_exp { $<str>$ = $<str>1; }
 
 unary_exp : postfix_exp { $<str>$ = $<str>1; }
         | INC_OP unary_exp { $<str>$ = $<str>2; }
-        | unary_operator cast_exp
+        | unary_operator cast_exp {
+                auto curr_type = std::string($<str>2);
+                int degree = $<val>2;
+                if(degree<0){
+                        if(curr_type.back()!='*'){
+                                cerr << "ERROR: Dereferencing a non-pointer object " << $<str>2 << " at line " << yylineno << endl;
+                                exit(1);
+                        }
+                        else curr_type.pop_back();
+                }
+                else{
+                        for(int i=0; i<degree; i++){
+                                curr_type += "*";
+                        }
+                }
+                $<str>$ = strdup(curr_type.data());
+        }
         ;
 
-unary_operator : '+'|'-'|'&'|'*'|UNARY_OP
+unary_operator : '+' {$<val>$ = 0;}
+        |'-' {$<val>$ = 0;}
+        |'&' {$<val>$ = 1;}
+        |'*' {$<val>$ = -1;}
+        |UNARY_OP {$<val>$ = 0;}
 ;
 
 postfix_exp : primary_exp { $<str>$ = $<str>1; }
@@ -315,17 +349,13 @@ primary_exp : ID {
                 if(env.isDeclared($<str>1))
 					$<str>$ = env.get($<str>1).type.data();
                 else{
-                        cout << "ERROR: ID " << $<str>1 << " not declared in line " << yylineno << endl;
+                        cerr << "ERROR: ID " << $<str>1 << " not declared at line " << yylineno << endl;
                         exit(1);
                 }
 }
         | consts { $<str>$ = $<str>1; }
         | STRING { $<str>$ = "char*"; }
         | '(' exp ')' { $<str>$ = $<str>2; }
-        ;
-
-argument_exp_list : assignment_exp
-        | argument_exp_list ',' assignment_exp
         ;
 
 consts : INTEGER { $<str>$ = "int"; }
@@ -348,7 +378,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	/* std::ifstream yyin(argv[1]); */
-    yyin = fopen(argv[1], "r");
+        yyin = fopen(argv[1], "r");
 	if (yyin == nullptr) {
 		std::cerr << "ERROR: file does not exist: " << argv[1] << std::endl;
 		return 1;
@@ -358,11 +388,41 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-bool isOpValid(string type1, string op, string type2){
-	if(type1 != type2){
-		cout << "ERROR: Invaid operation used: " << op << " in line " << yylineno
+std::string isOpValid(std::string type1, std::string op, std::string type2){
+        int pr1=findPriority(type1), pr2=findPriority(type2);
+        string ret = (pr1>=pr2)? type1: type2;
+
+        if(op=="||" || op=="&&"){
+                return "int";
+        }
+        else if(type1.back()=='*' || type2.back()=='*'){ //strings not allowed
+                cerr << "ERROR: Invaid operation arguments used for: " << op << " at line " << yylineno << endl;
+                exit(0);    
+        }
+        else if(op == "+" || op=="-" || op=="*" || op=="/"){
+                return ret;
+        }
+        else if(op=="%" || op=="^" || op=="|" || op=="&"){
+                if(findPriority(ret)>3){
+                        cerr << "ERROR: Invaid operation arguments used for: " << op << " at line " << yylineno
 			 << " with operands of type " << type1 <<" and " << type2 << endl;
-		exit(0);
-	}
-	return true;
+                        exit(0);  
+                }
+                else return ret;
+        }
+}
+
+int findPriority(std::string type){
+        static unordered_map<std::string, int> priority = {
+                {"char", 1}, {"int", 2}, {"long", 3}, {"float", 4}, {"double", 5}
+        };
+
+        if(priority.find(type)!=priority.end()){
+                return priority[type];
+        }
+        else return 0;
+}
+
+char* convertStr(std::string str){
+        return strdup(str.data());
 }
