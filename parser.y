@@ -13,9 +13,9 @@
         extern FILE* yyin;
 	extern int yylineno;
 
-	std::string isOpValid(std::string type1, std::string op, std::string type2);
-        int findPriority(std::string type);
-        char* convertStr(std::string str);
+	std::string isOpValid(const std::string& type1, const std::string& op, const std::string& type2);
+	int findPriority(const std::string& type);
+	char* convertStr(const std::string& str);
 
 	Env env;
 %}
@@ -164,15 +164,7 @@ direct_declarator: ID {
 | direct_declarator '(' { env.currentParams.clear(); } param_list ')' {
 	auto *details = $<details>1;
 	details->is_func = true;
-	details->type += '(';
-	int n = env.currentParams.size();
-	for (int i=0; i<n; i++) {
-		details->type += env.currentParams[i];
-		if (i != n-1) {
-			details->type += ',';
-		}
-	}
-	details->type += ')';
+	details->type += paramsToString(env.currentParams);
  }
 | direct_declarator '(' ')' {
 	auto *details = $<details>1;
@@ -265,14 +257,14 @@ assignment_exp : conditional_exp
         | unary_exp '=' assignment_exp {
                 if($<str>1==$<str>3){
                         cerr<< "ERROR: Type mismatch during assignment at line " << yylineno << endl;
-		        exit(1);
+						exit(1);
                 }
-                $<str>$==$<str>1 ;
+                $<str>$==$<str>1;
         }	
 ;
 
-argument_exp_list : assignment_exp
-        | argument_exp_list ',' assignment_exp
+argument_exp_list : assignment_exp { env.currentParams.push_back($<str>1); }
+| argument_exp_list { env.currentParams.push_back($<str>1); } ',' assignment_exp
 ;
 
 conditional_exp : logical_exp
@@ -326,7 +318,7 @@ unary_exp : postfix_exp { $<str>$ = $<str>1; }
                                 curr_type += "*";
                         }
                 }
-                $<str>$ = strdup(curr_type.data());
+                $<str>$ = convertStr(curr_type);
         }
         ;
 
@@ -337,21 +329,50 @@ unary_operator : '+' {$<val>$ = 0;}
         |UNARY_OP {$<val>$ = 0;}
 ;
 
+
 postfix_exp : primary_exp { $<str>$ = $<str>1; }
-        | postfix_exp '[' exp ']'
-        | postfix_exp '(' argument_exp_list ')'
-        | postfix_exp '(' ')' 
-        | postfix_exp MEM_OP ID //skiping
-        | postfix_exp INC_OP { $<str>$ = $<str>1; }
-        ;
-                            
+| postfix_exp '[' exp ']' {
+	auto type = $<str>1;
+	auto len = strlen(type);
+	if (type[len-1] != '*') {
+		cerr << "ERROR: Dereferencing a non-pointer object " << $<str>1 << " at line " << yylineno << endl;
+	}
+	type[len-1] = 0;
+	$<str>$ = type;
+}
+| postfix_exp '(' {env.currentParams.clear(); } argument_exp_list ')' {
+	auto func_type = $<str>1;
+	auto params = typeParams(func_type);
+	auto callParams = paramsToString(env.currentParams);
+	if (params != callParams) {
+		cerr << "ERROR: Function call does not match declaration at line " << yylineno << endl
+			 << "Declaration: " << typeParams(func_type) << endl
+			 << "Call: " << callParams << endl;
+	}
+	$<str>$ = convertStr(typeRoot(func_type));
+												}
+| postfix_exp '(' {env.currentParams.clear(); } ')' {
+	auto func_type = $<str>1;
+	auto params = typeParams(func_type);
+	auto callParams = paramsToString(env.currentParams);
+	if (params != callParams) {
+		cerr << "ERROR: Function call does not match declaration at line " << yylineno << endl;
+		cerr << "Declaration: " << typeParams(func_type) << "\nCall: " << callParams << endl;
+	}
+	$<str>$ = convertStr(typeRoot(func_type));
+												}
+| postfix_exp MEM_OP ID //skipping
+| postfix_exp INC_OP { $<str>$ = $<str>1; }
+;
+
+/*  */
 primary_exp : ID {
-                if(env.isDeclared($<str>1))
-					$<str>$ = env.get($<str>1).type.data();
-                else{
-                        cerr << "ERROR: ID " << $<str>1 << " not declared at line " << yylineno << endl;
-                        exit(1);
-                }
+	if(env.isDeclared($<str>1)) {
+		$<str>$ = env.get($<str>1).type.data();
+	} else {
+		cerr << "ERROR: ID " << $<str>1 << " not declared at line " << yylineno << endl;
+		exit(1);
+	}
 }
         | consts { $<str>$ = $<str>1; }
         | STRING { $<str>$ = "char*"; }
@@ -388,7 +409,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-std::string isOpValid(std::string type1, std::string op, std::string type2){
+std::string isOpValid(const std::string& type1, const std::string& op, const std::string& type2){
         int pr1=findPriority(type1), pr2=findPriority(type2);
         string ret = (pr1>=pr2)? type1: type2;
 
@@ -397,7 +418,7 @@ std::string isOpValid(std::string type1, std::string op, std::string type2){
         }
         else if(type1.back()=='*' || type2.back()=='*'){ //strings not allowed
                 cerr << "ERROR: Invaid operation arguments used for: " << op << " at line " << yylineno << endl;
-                exit(0);    
+                exit(1);
         }
         else if(op == "+" || op=="-" || op=="*" || op=="/"){
                 return ret;
@@ -406,13 +427,13 @@ std::string isOpValid(std::string type1, std::string op, std::string type2){
                 if(findPriority(ret)>3){
                         cerr << "ERROR: Invaid operation arguments used for: " << op << " at line " << yylineno
 			 << " with operands of type " << type1 <<" and " << type2 << endl;
-                        exit(0);  
+                        exit(1);
                 }
                 else return ret;
         }
 }
 
-int findPriority(std::string type){
+int findPriority(const std::string& type){
         static unordered_map<std::string, int> priority = {
                 {"char", 1}, {"int", 2}, {"long", 3}, {"float", 4}, {"double", 5}
         };
@@ -423,6 +444,6 @@ int findPriority(std::string type){
         else return 0;
 }
 
-char* convertStr(std::string str){
+char* convertStr(const std::string& str){
         return strdup(str.data());
 }

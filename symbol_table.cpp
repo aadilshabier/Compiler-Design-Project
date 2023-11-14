@@ -13,17 +13,11 @@ void Env::newScope()
 void Env::endScope()
 {
 	for (auto xy: stStack.back()) {
-		std::cout << "Added to symbol table: " << xy.first
+		std::cout << xy.first
 				  << " of type " << xy.second.type
-				  << " at line " << xy.second.decl_line;
-		if (xy.second.is_func) {
-			std::cout << " with parameters: ";
-			printParamList(xy.second.params);
-			std::cout << std::endl;
-		} else {
-			std::cout << " with dimension " << xy.second.dimension;
-		}
-		std::cout << std::endl;
+				  << " at line " << xy.second.decl_line
+				  << " with dimension " << xy.second.dimension
+				  << std::endl;
 	}
 	stStack.pop_back();
 }
@@ -60,4 +54,28 @@ void Env::printParamList(const std::vector<Type> &params)
 		std::cout << p << ", ";
 	}
 	std::cout << ')';
+}
+
+Type paramsToString(const std::vector<Type>& params) {
+    Type result;
+	result += '(';
+	int n = params.size();
+	for (int i=0; i<n; i++) {
+		result += params[i];
+		if (i != n-1) {
+			result += ',';
+		}
+	}
+	result += ')';
+	return result;
+}
+
+Type typeRoot(const Type& type) {
+	auto it = type.find('(');
+	return type.substr(0, it);
+}
+
+Type typeParams(const Type& type) {
+	auto it = type.find('(');
+	return type.substr(it);
 }

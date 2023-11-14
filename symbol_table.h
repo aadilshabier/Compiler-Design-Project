@@ -55,3 +55,9 @@ public:
 private:
 	std::vector<SymbolTable> stStack;
 };
+
+Type paramsToString(const std::vector<Type>& params);
+
+Type typeRoot(const Type& type);
+
+Type typeParams(const Type& type);
