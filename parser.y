@@ -134,11 +134,13 @@ direct_declarator: ID {
 | direct_declarator '[' conditional_exp ']' {
 	auto *details = $<details>1;
 	details->dimension++;
+	details->type += '*';
 	$<details>$ = $<details>1;
  }
 | direct_declarator '[' ']' {
 	auto *details = $<details>1;
 	details->dimension++;
+	details->type += '*';
 	$<details>$ = $<details>1;
  }
 | direct_declarator '(' { env.currentParams.clear(); } param_list ')' {
