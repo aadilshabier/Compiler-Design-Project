@@ -1,23 +1,13 @@
-void printf(char* s, float b[]) {
-}
-
-double fun() {}
-
 int main() {
-	int a[3], r1;
-	switch(a[3]) {
-	case 'f':
-		printf("Lol");
-		break;
-	default:
-		break;
+	for (;;) {
+		if (7 > 0)
+			continue;
+		else
+			break;
 	}
 
-	for (;;) {
-		if (r1 == 4)
-			continue;
-		else if (r1 % 2 == 0) {
-			break;
-		}
-	}
+	if (4 < 2)
+		continue;
+
+	return 0;
 }

@@ -16,7 +16,7 @@ flt_lit (([0-9]+[Ee][+-]?[0-9]+)|((([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([Ee][+-]?[
 "#include"[ ]*((<.*>)|(\".*\")) { return HEADER; }
 "#define"[ ]+.*$ { return DEFINE; }
 void|char|short|int|long|unsigned|signed|float|double|size_t { yylval.str = strdup(yytext); return DATATYPE; }
-"const"|"volatile" {  return QUALIFIER;}
+"const"|"volatile"|"static" { yylval.str = strdup(yytext); return QUALIFIER;}
 "if" { return IF; }
 "for" { return FOR; }
 "while" { return WHILE; }

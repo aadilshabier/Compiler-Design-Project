@@ -86,7 +86,13 @@ decl_list: decl decl_list
          | %empty
 ;
 
-decl_specs : QUALIFIER DATATYPE { $<str>$ = $<str>2; }
+decl_specs : QUALIFIER DATATYPE {
+	char buf[256];
+	strcpy(buf, $<str>1);
+	strcat(buf, " ");
+	strcat(buf, $<str>2);
+	$<str>$ = strdup(buf);
+}
            | DATATYPE { $<str>$ = $<str>1; }
            | STRUCT ID { $<str>$ = "struct"; }
            | UNION ID { $<str>$ = "union"; }
@@ -348,6 +354,7 @@ postfix_exp : primary_exp { $<str>$ = $<str>1; }
 		cerr << "ERROR: Function call does not match declaration at line " << yylineno << endl
 			 << "Declaration: " << typeParams(func_type) << endl
 			 << "Call: " << callParams << endl;
+		exit(1);
 	}
 	$<str>$ = convertStr(typeRoot(func_type));
 												}
@@ -358,6 +365,7 @@ postfix_exp : primary_exp { $<str>$ = $<str>1; }
 	if (params != callParams) {
 		cerr << "ERROR: Function call does not match declaration at line " << yylineno << endl;
 		cerr << "Declaration: " << typeParams(func_type) << "\nCall: " << callParams << endl;
+		exit(1);
 	}
 	$<str>$ = convertStr(typeRoot(func_type));
 												}
