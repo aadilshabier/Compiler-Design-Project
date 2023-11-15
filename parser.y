@@ -61,7 +61,7 @@ external_decl: function_definition
              | union_decl
 ;
 
-function_definition: decl_specs { env.currentType = $<str>1; } declarator {
+function_definition: decl_specs { env.currentType = $<str>1; env.funcType = typeRoot($<str>1); } declarator {
 	env.newScope();
 	env.inFunction = true;
 }
@@ -71,7 +71,7 @@ compound_stat {
 }
 ;
 
-decl: decl_specs { env.currentType = $<str>1;} init_declarator_list ';'
+decl: decl_specs { env.currentType = $<str>1; env.funcType = typeRoot($<str>1);} init_declarator_list ';'
 ;
 
 
@@ -230,11 +230,19 @@ jump_stat: CONTINUE ';' {
 	if (not env.inFunction) {
 		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
 		exit(1);
+	}
+        else if(strcmp(env.funcType.data(), $<str>2)){
+                cerr<< "ERROR: Return type mismatch at line " << yylineno << endl;
+		exit(1);
         }
 }
 | RETURN ';' {
 	if (not env.inFunction) {
 		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
+		exit(1);
+	}
+        else if(strcmp(env.funcType.data(), "void")){
+                cerr<< "ERROR: Return type expected but not given at line " << yylineno << endl;
 		exit(1);
         }
 }

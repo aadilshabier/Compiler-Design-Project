@@ -45,6 +45,7 @@ public:
 	int switchCount = 0; // for case, default, break statements
 	int loopCount = 0; // for break, continue statements
 	bool inFunction = false; // for returns
+	Type funcType; // stores current func return type
 
 	Type currentType;
 	std::vector<Type> currentParams;
