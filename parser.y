@@ -114,18 +114,18 @@ init_declarator: declarator
                | declarator '=' initializer
 ;
 
-initializer     : assignment_exp {$<str>$==$<str>1 ;}
-                | '{' initializer_list '}' {$<str>$==$<str>2 ;}
-                | '{' initializer_list ',' '}' {$<str>$==$<str>2 ;}
+initializer     : assignment_exp {$<str>$=$<str>1 ;}
+                | '{' initializer_list '}' {$<str>$=$<str>2 ;}
+                | '{' initializer_list ',' '}' {$<str>$=$<str>2 ;}
 ;
 
-initializer_list        : initializer {$<str>$==$<str>1 ;}
+initializer_list        : initializer {$<str>$=$<str>1 ;}
                 | initializer_list ',' initializer{
-                        if($<str>1!=$<str>3){
+                        if(strcmp($<str>1, $<str>3)){
                                 cerr<< "ERROR: Type mismatch during initialization at line " << yylineno << endl;
                                 exit(1);
                         }
-                        $<str>$==$<str>1 ;
+                        $<str>$=$<str>1 ;
                 }
 ;
 
@@ -230,13 +230,13 @@ jump_stat: CONTINUE ';' {
 	if (not env.inFunction) {
 		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
 		exit(1);
-	        }
+        }
 }
 | RETURN ';' {
 	if (not env.inFunction) {
 		cerr<< "ERROR: Return outside of function at line " << yylineno << endl;
 		exit(1);
-	        }
+        }
 }
 ;
 
@@ -261,11 +261,11 @@ exp : assignment_exp
 assignment_exp : conditional_exp
         | unary_exp ASSIGN_OP assignment_exp
         | unary_exp '=' assignment_exp {
-                if($<str>1==$<str>3){
+                if(strcmp($<str>1, $<str>3)){
                         cerr<< "ERROR: Type mismatch during assignment at line " << yylineno << endl;
 						exit(1);
                 }
-                $<str>$==$<str>1;
+                $<str>$=$<str>1 ;
         }	
 ;
 
@@ -311,7 +311,7 @@ unary_exp : postfix_exp { $<str>$ = $<str>1; }
         | INC_OP unary_exp { $<str>$ = $<str>2; }
         | unary_operator cast_exp {
                 auto curr_type = std::string($<str>2);
-                int degree = $<val>2;
+                int degree = $<val>1;
                 if(degree<0){
                         if(curr_type.back()!='*'){
                                 cerr << "ERROR: Dereferencing a non-pointer object " << $<str>2 << " at line " << yylineno << endl;
