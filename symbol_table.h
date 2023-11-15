@@ -4,12 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-// struct Type {
-	// bool is_ptr;
-	// std::string type_name;
-	// Type *inner_type = nullptr;
-// };
-
 using Type = std::string;
 
 struct SymbolDetails {
@@ -22,6 +16,8 @@ struct SymbolDetails {
 
 	// Function stuff
 	bool is_func = false;
+
+	std::string usage_lines_str() const;
 };
 
 using SymbolTable = std::unordered_map<std::string, SymbolDetails>;
@@ -44,7 +40,7 @@ public:
 	SymbolDetails& put(const std::string &name);
 	SymbolDetails& get(const std::string &name);
 private:
-	static void printParamList(const std::vector<Type> &params);
+	static void printSymbolTable(const SymbolTable &params);
 public:
 	int switchCount = 0; // for case, default, break statements
 	int loopCount = 0; // for break, continue statements

@@ -43,7 +43,7 @@ QUALIFIER CONTINUE BREAK SWITCH CASE DEFAULT STRUCT UNION CHAR INC_OP END_OF_FIL
 %start start
 
 %%
-start: { env.newScope(); } program_unit END_OF_FILE { cout << "Compilation successful!\n"; env.endScope(); exit(0);}
+start: { env.newScope(); } program_unit END_OF_FILE { env.endScope(); cout << "Compilation successful!\n"; exit(0);}
 ;
 
 program_unit: HEADER program_unit
@@ -373,10 +373,11 @@ postfix_exp : primary_exp { $<str>$ = $<str>1; }
 | postfix_exp INC_OP { $<str>$ = $<str>1; }
 ;
 
-/*  */
 primary_exp : ID {
 	if(env.isDeclared($<str>1)) {
-		$<str>$ = env.get($<str>1).type.data();
+		auto &details = env.get($<str>1);
+		details.usage_lines.push_back(yylineno);
+		$<str>$ = details.type.data();
 	} else {
 		cerr << "ERROR: ID " << $<str>1 << " not declared at line " << yylineno << endl;
 		exit(1);

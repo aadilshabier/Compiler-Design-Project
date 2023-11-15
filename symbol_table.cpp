@@ -1,5 +1,18 @@
 #include "symbol_table.h"
 #include <iostream>
+#include <iomanip>
+
+std::string SymbolDetails::usage_lines_str() const
+{
+	std::string result;
+	for (int i=0; i<usage_lines.size(); i++) {
+		result += std::to_string(usage_lines[i]);
+		if (i != usage_lines.size()-1)
+			result += ' ';
+	}
+	return result;
+}
+
 
 Env::Env()
 {
@@ -12,13 +25,7 @@ void Env::newScope()
 
 void Env::endScope()
 {
-	for (auto xy: stStack.back()) {
-		std::cout << xy.first
-				  << " of type " << xy.second.type
-				  << " at line " << xy.second.decl_line
-				  << " with dimension " << xy.second.dimension
-				  << std::endl;
-	}
+	printSymbolTable(stStack.back());
 	stStack.pop_back();
 }
 
@@ -47,13 +54,19 @@ SymbolDetails& Env::get(const std::string &name) {
 	}
 }
 
-void Env::printParamList(const std::vector<Type> &params)
+void Env::printSymbolTable(const SymbolTable &st)
 {
-	std::cout << '(';
-	for (const auto &p : params) {
-		std::cout << p << ", ";
+	if (st.size() == 0)
+		return;
+
+	constexpr int WIDTH = 20;
+	std::cout << std::setw(WIDTH) << "NAME" << std::setw(WIDTH) << "DECLARATION LINE" << std::setw(WIDTH) << "USAGE LINES"
+			  << std::setw(WIDTH) << "TYPE" << std::setw(WIDTH) << "DIMENSION" << std::setw(WIDTH) << "FUNCTION" << std::endl;
+	for (const auto& [name, details]: st) {
+		std::cout << std::setw(WIDTH) << name << std::setw(WIDTH) << details.decl_line << std::setw(WIDTH) << details.usage_lines_str()
+				  << std::setw(WIDTH) << details.type << std::setw(WIDTH) << details.dimension << std::setw(WIDTH) << details.is_func << std::endl;
 	}
-	std::cout << ')';
+	std::cout << std::endl;
 }
 
 Type paramsToString(const std::vector<Type>& params) {
