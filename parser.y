@@ -270,7 +270,7 @@ assignment_exp : conditional_exp
 ;
 
 argument_exp_list : assignment_exp { env.currentParams.push_back($<str>1); }
-| argument_exp_list { env.currentParams.push_back($<str>1); } ',' assignment_exp
+| argument_exp_list ',' assignment_exp { env.currentParams.push_back($<str>3); }
 ;
 
 conditional_exp : logical_exp
