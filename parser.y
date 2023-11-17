@@ -13,6 +13,7 @@
         extern FILE* yyin;
 	extern int yylineno;
 
+        bool isAsgnValid(const std::string& type1, const std::string& type2);
 	std::string isOpValid(const std::string& type1, const std::string& op, const std::string& type2);
 	int findPriority(const std::string& type);
 	char* convertStr(const std::string& str);
@@ -110,8 +111,8 @@ init_declarator_list: init_declarator
          | init_declarator ',' init_declarator_list
 ;
 
-init_declarator: declarator
-               | declarator '=' initializer
+init_declarator: declarator {$<str>$ = strdup($<str>1);}
+               | declarator '=' initializer {isAsgnValid($<str>1, $<str>3); $<str>$ = strdup($<str>1);}
 ;
 
 initializer     : assignment_exp {$<str>$=$<str>1 ;}
@@ -266,15 +267,9 @@ exp : assignment_exp
         | exp ',' assignment_exp
 ;
 
-assignment_exp : conditional_exp
-        | unary_exp ASSIGN_OP assignment_exp
-        | unary_exp '=' assignment_exp {
-                if(strcmp($<str>1, $<str>3)){
-                        cerr<< "ERROR: Type mismatch during assignment at line " << yylineno << endl;
-						exit(1);
-                }
-                $<str>$=$<str>1 ;
-        }	
+assignment_exp : conditional_exp {$<str>$ = $<str>1;}
+        | unary_exp ASSIGN_OP assignment_exp {isAsgnValid($<str>1, $<str>3); $<str>$ = $<str>1;}
+        | unary_exp '=' assignment_exp {isAsgnValid($<str>1, $<str>3); $<str>$ = $<str>1;}
 ;
 
 argument_exp_list : assignment_exp { env.currentParams.push_back($<str>1); }
@@ -426,6 +421,21 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
+bool isAsgnValid(const std::string& type1, const std::string& type2){
+        int pr1=findPriority(type1), pr2=findPriority(type2);
+
+        if(type1 == type2){
+                return true;
+        }
+        else if(pr1==0 || pr2==0){
+                // pointers of any kind must be equivalent for type conversion
+                cerr<< "ERROR: Invalid conversion from " << type2 << " to " << type1 <<
+                " at line " << yylineno << endl;
+                exit(1);
+        }
+        else return true;
+}
+
 std::string isOpValid(const std::string& type1, const std::string& op, const std::string& type2){
         int pr1=findPriority(type1), pr2=findPriority(type2);
         string ret = (pr1>=pr2)? type1: type2;
@@ -452,13 +462,13 @@ std::string isOpValid(const std::string& type1, const std::string& op, const std
 
 int findPriority(const std::string& type){
         static unordered_map<std::string, int> priority = {
-                {"char", 1}, {"int", 2}, {"long", 3}, {"float", 4}, {"double", 5}
+                {"char", 1}, {"short", 2}, {"int", 3}, {"long", 4}, {"float", 5}, {"double", 6}
         };
 
         if(priority.find(type)!=priority.end()){
                 return priority[type];
         }
-        else return 0;
+        else return 0; //type not in priority vector
 }
 
 char* convertStr(const std::string& str){
