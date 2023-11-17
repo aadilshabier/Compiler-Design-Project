@@ -111,11 +111,11 @@ init_declarator_list: init_declarator
          | init_declarator ',' init_declarator_list
 ;
 
-init_declarator: declarator {$<str>$ = strdup($<str>1);}
-               | declarator '=' initializer {isAsgnValid($<str>1, $<str>3); $<str>$ = strdup($<str>1);}
+init_declarator: declarator { $<str>$ = convertStr($<details>1->type);}
+               | declarator '=' initializer {isAsgnValid($<details>1->type, $<str>3); $<str>$ = convertStr($<details>1->type);}
 ;
 
-initializer     : assignment_exp {$<str>$=$<str>1 ;}
+initializer     : assignment_exp { $<str>$=$<str>1; }
                 | '{' initializer_list '}' {$<str>$=$<str>2 ;}
                 | '{' initializer_list ',' '}' {$<str>$=$<str>2 ;}
 ;
@@ -137,7 +137,7 @@ for (int i=0; i<ptr_count; i++)
 		details->type+='*';
 	$<details>$ = details;
 }
-          | direct_declarator
+| direct_declarator { $<details>$ = $<details>1; }
 ;
 
 pointer: '*' pointer { $<val>$ = $<val>2 + 1; }
@@ -263,8 +263,8 @@ labeled_stat: CASE consts ':' stat {
 
 }
 
-exp : assignment_exp
-        | exp ',' assignment_exp
+exp : assignment_exp {$<str>$ = $<str>1;}
+        | exp ',' assignment_exp {$<str>$ = $<str>3;}
 ;
 
 assignment_exp : conditional_exp {$<str>$ = $<str>1;}
@@ -276,7 +276,7 @@ argument_exp_list : assignment_exp { env.currentParams.push_back($<str>1); }
 | argument_exp_list ',' assignment_exp { env.currentParams.push_back($<str>3); }
 ;
 
-conditional_exp : logical_exp
+conditional_exp : logical_exp {  }
         | logical_exp '?' exp ':' assignment_exp
         ;
 
