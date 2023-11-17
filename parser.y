@@ -17,6 +17,7 @@
 	std::string isOpValid(const std::string& type1, const std::string& op, const std::string& type2);
 	int findPriority(const std::string& type);
 	char* convertStr(const std::string& str);
+	bool isFloatType(const string& type);
 
 	Env env;
 %}
@@ -276,31 +277,43 @@ argument_exp_list : assignment_exp { env.currentParams.push_back($<str>1); }
 | argument_exp_list ',' assignment_exp { env.currentParams.push_back($<str>3); }
 ;
 
-conditional_exp : logical_exp {  }
-        | logical_exp '?' exp ':' assignment_exp
-        ;
+conditional_exp : logical_exp { $<str>$ = $<str>1;}
+| logical_exp '?' exp ':' assignment_exp {
+	if (strcmp($<str>3, $<str>5)) {
+		cerr << "ERROR: Type mismatch in ternary operator.\n";
+		exit(1);
+	}
+	$<str>$ = $<str>3;
+}
+;
 
-logical_exp : equality_exp
-        | logical_exp logical_oper equality_exp
-        ;
+logical_exp : equality_exp { $<str>$ = $<str>1;}
+| logical_exp logical_oper equality_exp { $<str>$ = "int"; }
+;
 
 logical_oper : '|' | '&' | BINARY_OP
-        ;
+;
 
 equality_exp : shift_expression { $<str>$ = $<str>1;}
         | equality_exp COMP_OP shift_expression
         ;
 
 shift_expression : additive_exp { $<str>$ = $<str>1;}
-        | shift_expression SHIFT_CONST additive_exp
-        ;
+| shift_expression SHIFT_CONST additive_exp {
+	if (isFloatType($<str>3)) {
+		cerr << "ERROR: Second operand of shift operator cannot be a floating type.\n";
+		exit(1);
+	}
+	$<str>$ = $<str>1;
+}
+;
 
 additive_exp : mult_exp { $<str>$ = $<str>1;}
         | additive_exp '+' mult_exp { $<str>$ = convertStr(isOpValid($<str>1, "+", $<str>3));}
         | additive_exp '-' mult_exp { $<str>$ = convertStr(isOpValid($<str>1, "-", $<str>3));}
         ;
 
-mult_exp : cast_exp
+mult_exp : cast_exp { $<str>$ = $<str>1; }
         | mult_exp '*' cast_exp { $<str>$ = convertStr(isOpValid($<str>1, "*", $<str>3));}
         | mult_exp '/' cast_exp { $<str>$ = convertStr(isOpValid($<str>1, "/", $<str>3));}
         | mult_exp '%' cast_exp { $<str>$ = convertStr(isOpValid($<str>1, "%", $<str>3));}
@@ -422,6 +435,9 @@ int main(int argc, char* argv[]) {
 }
 
 bool isAsgnValid(const std::string& type1, const std::string& type2){
+     	if (type1.back() == '*' && type2.back() == '*') {
+	    	return true;
+	    }
         int pr1=findPriority(type1), pr2=findPriority(type2);
 
         if(type1 == type2){
@@ -441,23 +457,22 @@ std::string isOpValid(const std::string& type1, const std::string& op, const std
         string ret = (pr1>=pr2)? type1: type2;
 
         if(op=="||" || op=="&&"){
-                return "int";
+                ret = "int";
         }
         else if(type1.back()=='*' || type2.back()=='*'){ //strings not allowed
+			// cannot multiply with anything, cannot add and subtract with floats
+			if (op == "*" || ((op == "+" || op == "-") && (isFloatType(type1) || isFloatType(type2)))) {
                 cerr << "ERROR: Invaid operation arguments used for: " << op << " at line " << yylineno << endl;
                 exit(1);
-        }
-        else if(op == "+" || op=="-" || op=="*" || op=="/"){
-                return ret;
-        }
-        else if(op=="%" || op=="^" || op=="|" || op=="&"){
+			}
+        } else if(op=="%" || op=="^" || op=="|" || op=="&"){
                 if(findPriority(ret)>3){
                         cerr << "ERROR: Invaid operation arguments used for: " << op << " at line " << yylineno
 			 << " with operands of type " << type1 <<" and " << type2 << endl;
                         exit(1);
                 }
-                else return ret;
         }
+		return ret;
 }
 
 int findPriority(const std::string& type){
@@ -473,4 +488,8 @@ int findPriority(const std::string& type){
 
 char* convertStr(const std::string& str){
         return strdup(str.data());
+}
+
+bool isFloatType(const string& type) {
+	return type == "float" || type == "double";
 }
